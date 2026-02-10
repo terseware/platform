@@ -1,0 +1,9 @@
+{
+  "eslint.validate": ["json", "javascript", "typescript", "html"],
+  "eslint.workingDirectories": [{ "pattern": "./apps/*/" }, { "pattern": "./packages/*/" }],
+  "tailwindCSS.classFunctions": ["clsx", "cva", "cx", "cn"],
+  "tailwindCSS.experimental.classRegex": [
+    "(?:class|className)\\s*[=:]\\s*['\"`]([^'\"`]*)['\"`]",
+    "(?:cva|cn|cx|clsx)\\s*\\([^)]*['\"`]([^'\"`]*)['\"`]"
+  ]
+}

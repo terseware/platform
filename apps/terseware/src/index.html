@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>terseware</title>
+    <base href="/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta content="dark light" name="color-scheme" />
+    <meta content="#5fb28b" name="theme-color" />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" sizes="any" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap"
+      rel="stylesheet"
+    />
+    <script>
+      (function () {
+        try {
+          const html = document.documentElement;
+          const theme = localStorage.theme;
+          const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false;
+          const isSystem = theme === 'system' || !('theme' in localStorage);
+          const isDark = theme === 'dark' || (isSystem && prefersDark);
+          const resolvedTheme = isDark ? 'dark' : 'light';
+          html.classList.toggle('dark', isDark);
+          html.setAttribute('data-theme', theme ?? 'system');
+          html.style.colorScheme = resolvedTheme;
+        } catch {}
+      })();
+    </script>
+  </head>
+  <body>
+    <tw-root></tw-root>
+  </body>
+</html>

@@ -1,0 +1,9 @@
+{
+  "name": "terseware-e2e",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "apps/terseware-e2e/src",
+  "implicitDependencies": ["terseware"],
+  "// targets": "to see all targets run: nx show project terseware-e2e --web",
+  "targets": {}
+}

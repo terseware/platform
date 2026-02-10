@@ -1,0 +1,17 @@
+{
+  "srcFiles": [
+    "./node_modules/@phosphor-icons/core/assets/**/*.svg",
+    "./apps/terseware/public/**/*.svg"
+  ],
+  "outputDirectory": "./apps/terseware/src",
+  "interfaceName": "IconData",
+  "typeName": "icon",
+  "prefix": "icon",
+  "fileName": "icon.model",
+  "iconsFolderName": "icons",
+  "svgoConfig": {
+    "plugins": [
+      "cleanupAttrs"
+    ]
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "@terseware/proto",
+  "version": "0.0.1",
+  "peerDependencies": {
+    "@angular/core": "^21.1.0",
+    "@angular/common": "~21.1.3",
+    "@ngrx/signals": "^21.0.1",
+    "@angular/cdk": "~21.1.3",
+    "rxjs": "~7.8.2",
+    "ngxtension": "^7.1.0"
+  },
+  "sideEffects": false
+}
