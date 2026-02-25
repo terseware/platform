@@ -1,1 +1,1 @@
-export * from './lib/button-module';
+export * from './lib/terse-button';

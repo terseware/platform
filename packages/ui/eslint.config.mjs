@@ -28,5 +28,27 @@ export default [
       parser: await import('jsonc-eslint-parser'),
     },
   },
+  {
+    files: ['**/*.ts'],
+    ignores: ['**/*.spec.ts'],
+    rules: {
+      '@angular-eslint/directive-selector': [
+        'error',
+        {
+          type: 'attribute',
+          prefix: 'terse',
+          style: 'camelCase',
+        },
+      ],
+      '@angular-eslint/component-selector': [
+        'error',
+        {
+          type: ['element', 'attribute'],
+          prefix: 'terse',
+          style: 'kebab-case',
+        },
+      ],
+    },
+  },
   eslintConfigPrettier,
 ];

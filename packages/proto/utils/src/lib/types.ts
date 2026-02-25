@@ -49,3 +49,16 @@ export type SignalStoreBindings<Input extends SignalStoreFeatureResult, Bindings
 export type PrefixKeys<T extends object, P extends string> = {
   [K in keyof T as `${P}${Capitalize<string & K>}`]: T[K];
 };
+
+export type Exact<T, Shape> = T extends Shape
+  ? Exclude<keyof T, keyof Shape> extends never
+    ? T
+    : never
+  : never;
+
+export type UnionToIntersection<T extends readonly object[]> = T extends readonly [
+  infer First,
+  ...infer Rest extends object[],
+]
+  ? First & UnionToIntersection<Rest>
+  : unknown;

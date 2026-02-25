@@ -30,7 +30,7 @@ export default [
   },
   {
     files: ['**/*.ts'],
-    ignores: ['**/*.spec.ts'],
+    ignores: ['**/*.spec.ts', '**/test-setup.ts'],
     rules: {
       '@angular-eslint/directive-selector': [
         'error',
@@ -46,6 +46,17 @@ export default [
           type: ['element', 'attribute'],
           prefix: 'proto',
           style: 'kebab-case',
+        },
+      ],
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              regex: '^(?!(@angular|rxjs|ngx-proto)(/.*)?$)(?!\\.{1,2}/).*',
+              message: 'Only allowed imports: @angular|rxjs|ngx-proto',
+            },
+          ],
         },
       ],
     },

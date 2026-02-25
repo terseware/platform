@@ -1,5 +1,5 @@
 import type { Signal } from '@angular/core';
-import { effect, inject, Injector, signal, untracked } from '@angular/core';
+import { computed, effect, inject, Injector, signal, untracked } from '@angular/core';
 
 /** Listen for changes to a signal and call a function when the signal changes.*/
 export function onChange<T>(
@@ -22,4 +22,8 @@ export function onChange<T>(
 
   // call the fn with the initial value
   fn(source(), null);
+}
+
+export function computedConst<const T>(val: () => T): Signal<T> {
+  return computed(() => val());
 }

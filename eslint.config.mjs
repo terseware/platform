@@ -37,11 +37,7 @@ export default [
         {
           patterns: [
             {
-              group: ['apps/*'],
-              message: 'Importing from apps/* is not allowed.',
-            },
-            {
-              group: ['packages/*'],
+              group: ['packages/*', 'apps/*', 'node_modules/*'],
               message: 'Use path aliases (e.g., @terseware/*) instead of direct package paths.',
             },
           ],
@@ -59,20 +55,9 @@ export default [
       '@typescript-eslint/consistent-indexed-object-style': 'error',
       '@typescript-eslint/consistent-type-assertions': 'error',
       '@typescript-eslint/consistent-type-definitions': ['error', 'type'],
-      '@typescript-eslint/explicit-function-return-type': [
-        'warn',
-        {
-          allowConciseArrowFunctionExpressionsStartingWithVoid: false,
-          allowDirectConstAssertionInArrowFunctions: false,
-          allowedNames: [],
-          allowExpressions: true,
-          allowFunctionsWithoutTypeParameters: false,
-          allowHigherOrderFunctions: false,
-          allowIIFEs: false,
-          allowTypedFunctionExpressions: true,
-        },
-      ],
+      '@typescript-eslint/explicit-module-boundary-types': 'warn',
       '@typescript-eslint/explicit-member-accessibility': ['error', { accessibility: 'no-public' }],
+      '@typescript-eslint/no-unused-expressions': 'off',
       '@typescript-eslint/naming-convention': [
         'error',
         {
@@ -132,7 +117,6 @@ export default [
       '@typescript-eslint/no-empty-function': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-non-null-assertion': 'off',
-      '@typescript-eslint/no-unused-expressions': 'off',
       '@typescript-eslint/explicit-function-return-type': 'off',
       'no-unused-expressions': 'off',
       'no-console': 'off',

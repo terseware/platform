@@ -16,17 +16,24 @@
     />
     <script>
       (function () {
-        try {
+        syncTerseUiTheme();
+
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+          syncTerseUiTheme(e.matches);
+        });
+
+        function syncTerseUiTheme(prefersDark) {
+          prefersDark ??= window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false;
+          const storage = localStorage.getItem('theme');
+          const localTheme = storage === 'light' || storage === 'dark' ? storage : null;
+          const resolvedTheme = localTheme ? localTheme : prefersDark ? 'dark' : 'light';
           const html = document.documentElement;
-          const theme = localStorage.theme;
-          const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false;
-          const isSystem = theme === 'system' || !('theme' in localStorage);
-          const isDark = theme === 'dark' || (isSystem && prefersDark);
-          const resolvedTheme = isDark ? 'dark' : 'light';
-          html.classList.toggle('dark', isDark);
-          html.setAttribute('data-theme', theme ?? 'system');
+          html.classList.remove('light', 'dark');
+          html.classList.add(resolvedTheme);
           html.style.colorScheme = resolvedTheme;
-        } catch {}
+        }
+
+        globalThis.syncTerseUiTheme = syncTerseUiTheme;
       })();
     </script>
   </head>

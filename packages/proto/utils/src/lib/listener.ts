@@ -9,21 +9,30 @@ export function listener<K extends keyof HTMLElementEventMap>(
   element: HTMLElement | ElementRef<HTMLElement> | Document,
   event: K,
   handler: (event: HTMLElementEventMap[K]) => void,
-  options?: { injector?: Injector; config?: AddEventListenerOptions | boolean },
+  options?: {
+    injector?: Injector | undefined;
+    config?: AddEventListenerOptions | boolean | undefined;
+  },
 ): () => void;
 
 export function listener(
   element: HTMLElement | ElementRef<HTMLElement> | Document,
   event: string,
   handler: (event: Event) => void,
-  options?: { injector?: Injector; config?: AddEventListenerOptions | boolean },
+  options?: {
+    injector?: Injector | undefined;
+    config?: AddEventListenerOptions | boolean | undefined;
+  },
 ): () => void;
 
 export function listener<K extends keyof HTMLElementEventMap>(
   element: HTMLElement | ElementRef<HTMLElement> | Document,
   event: K | string,
   handler: (event: HTMLElementEventMap[K] | Event) => void,
-  options?: { injector?: Injector; config?: AddEventListenerOptions | boolean },
+  options?: {
+    injector?: Injector | undefined;
+    config?: AddEventListenerOptions | boolean | undefined;
+  },
 ): () => void {
   return runInInjectionContext(assertInjector(listener, options?.injector), () => {
     const nativeElement = coerceElement(element);

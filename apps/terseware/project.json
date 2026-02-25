@@ -54,7 +54,8 @@
       "continuous": true,
       "executor": "@angular/build:dev-server",
       "options": {
-        "port": 4200
+        "port": 4200,
+        "hmr": false
       },
       "configurations": {
         "production": {
