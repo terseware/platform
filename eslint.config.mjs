@@ -1,10 +1,12 @@
 // @ts-check
 import nx from '@nx/eslint-plugin';
+import importPlugin from 'eslint-plugin-import';
 
 export default [
   ...nx.configs['flat/base'],
   ...nx.configs['flat/typescript'],
   ...nx.configs['flat/javascript'],
+  importPlugin.flatConfigs.typescript,
   {
     ignores: ['**/dist', '**/out-tsc', '**/vitest.config.*.timestamp*'],
   },
@@ -51,7 +53,17 @@ export default [
       '@typescript-eslint/no-unsafe-function-type': 'error',
       '@typescript-eslint/no-empty-object-type': 'error',
       '@typescript-eslint/array-type': 'error',
-      '@typescript-eslint/consistent-type-imports': 'error',
+      '@typescript-eslint/consistent-type-imports': [
+        'error',
+        {
+          prefer: 'type-imports',
+          fixStyle: 'separate-type-imports',
+          disallowTypeAnnotations: true,
+        },
+      ],
+      '@typescript-eslint/no-import-type-side-effects': 'error',
+      'import/consistent-type-specifier-style': ['error', 'prefer-top-level'],
+      'import/no-unresolved': 'off',
       '@typescript-eslint/consistent-indexed-object-style': 'error',
       '@typescript-eslint/consistent-type-assertions': 'error',
       '@typescript-eslint/consistent-type-definitions': ['error', 'type'],

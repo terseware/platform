@@ -4,6 +4,14 @@
   "peerDependencies": {
     "@angular/common": "^21.1.0",
     "@angular/core": "^21.1.0",
+    "@terseware/proto": "0.0.1",
+    "@angular/platform-browser": "^21.1.5",
+    "tailwind-merge": "^3.5.0",
+    "@angular/cdk": "^21.1.5",
+    "@ng-icons/lucide": "^33.1.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "@ngrx/signals": "^21.0.1",
     "rxjs": "~7.8.2"
   },
   "sideEffects": false,

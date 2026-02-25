@@ -2,25 +2,18 @@ import { httpResource } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { ProtoButton } from '@terseware/proto/button';
-import { ProtoTooltip, ProtoTooltipRoot, ProtoTooltipTrigger } from '@terseware/proto/tooltip';
 import { TerseIcon, toTerseIcon } from '@terseware/ui/icon';
 import { TerseThemeToggle } from '@terseware/ui/theme';
+import { TerseTooltip } from '@terseware/ui/tooltip';
 
 @Component({
   selector: 'tw-root',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    RouterOutlet,
-    TerseThemeToggle,
-    TerseIcon,
-    ProtoTooltipRoot,
-    ProtoTooltipTrigger,
-    ProtoTooltip,
-    ProtoButton,
-  ],
+  imports: [RouterOutlet, TerseThemeToggle, TerseIcon, TerseTooltip, ProtoButton],
   host: { class: 'contents' },
   template: `
     <header class="bg-surface flex h-16 items-center px-4 py-3" protoTooltipRoot>
+      <terse-theme-toggle focusableWhenDisabled [terseTooltip]="'Toggle Theme'" />
       @if (logoIcon(); as logoIcon) {
         <svg class="text-primary size-8" fill="currentColor" [terseIcon]="logoIcon"></svg>
       }
@@ -29,8 +22,6 @@ import { TerseThemeToggle } from '@terseware/ui/theme';
         ><span class="text-on-surface-muted">ware</span></span
       >
       <span class="flex-1"></span>
-      <terse-theme-toggle disabled focusableWhenDisabled protoTooltipTrigger />
-      <span protoTooltip>Tooltip</span>
       <div
         id="button"
         protoButton
@@ -66,11 +57,4 @@ export class App {
   console = console;
 
   readonly focusableWhenDisabled = signal(true);
-
-  constructor() {
-    setTimeout(() => {
-      this.focusableWhenDisabled.set(false);
-      console.log('focusableWhenDisabled set to false');
-    }, 4000);
-  }
 }

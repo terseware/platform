@@ -1,6 +1,15 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import type { BooleanInput, NumberInput } from '@angular/cdk/coercion';
+import {
+  booleanAttribute,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  input,
+  numberAttribute,
+} from '@angular/core';
 import { lucideLoaderCircle } from '@ng-icons/lucide';
-import { ProtoButton } from '@terseware/proto/button';
+import { resolve } from '@terseware/proto';
+import { Button } from '@terseware/proto/button';
 import { TerseIcon, toTerseIcon } from '@terseware/ui/icon';
 import { cn } from '@terseware/ui/utils';
 import type { VariantProps } from 'class-variance-authority';
@@ -56,35 +65,57 @@ export type TerseButtonVariants = VariantProps<typeof terseButtonVariants>;
   selector: 'terse-button, [terseButton]',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TerseIcon],
-  hostDirectives: [
-    {
-      directive: ProtoButton,
-      inputs: ['disabled', 'focusableWhenDisabled:loading', 'tabIndex', 'role', 'type'],
-    },
-  ],
   host: {
     'data-slot': 'button',
-    '[aria-label]': "isLoading() ? 'Loading, please wait' : null",
+    '[aria-label]': "loading() ? 'Loading, please wait' : null",
     '[class]': 'classValue()',
   },
   template: `
-    @if (isLoading()) {
+    @if (loading()) {
       <svg class="animate-spin" [terseIcon]="lucideLoaderCircle"></svg>
     }
     <ng-content />
   `,
 })
 export class TerseButton {
-  readonly lucideLoaderCircle = toTerseIcon('Loader Circle', lucideLoaderCircle);
+  readonly disabled = input<boolean, BooleanInput>(false, {
+    transform: booleanAttribute,
+  });
 
-  readonly protoButton = inject(ProtoButton);
-  readonly isLoading = this.protoButton.focusableWhenDisabled;
+  readonly loading = input<boolean, BooleanInput>(false, {
+    transform: booleanAttribute,
+  });
 
-  readonly variant = input<TerseButtonVariants['variant']>();
+  readonly tabIndex = input<number, NumberInput>(0, {
+    transform: value => numberAttribute(value, 0),
+  });
+
+  readonly role = input<string | null>();
+  readonly type = input<string | null>();
+
+  constructor() {
+    resolve(Button, {
+      disabled: computed(() => this.disabled() || this.loading()),
+      focusableWhenDisabled: this.loading,
+      tabIndex: this.tabIndex,
+      role: this.role,
+      type: this.type,
+    });
+  }
+
+  readonly terseButton = input<TerseButtonVariants['variant'] | ''>();
   readonly size = input<TerseButtonVariants['size']>();
 
   readonly class = input<ClassValue>();
   readonly classValue = computed(() =>
-    cn(terseButtonVariants({ variant: this.variant(), size: this.size(), class: this.class() })),
+    cn(
+      terseButtonVariants({
+        variant: this.terseButton() || 'default',
+        size: this.size(),
+        class: this.class(),
+      }),
+    ),
   );
+
+  readonly lucideLoaderCircle = toTerseIcon('Loader Circle', lucideLoaderCircle);
 }

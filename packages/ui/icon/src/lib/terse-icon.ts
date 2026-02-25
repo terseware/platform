@@ -8,7 +8,7 @@ import {
 } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
 import { deepComputed } from '@ngrx/signals';
-import { uniqueId } from '@terseware/proto/utils';
+import { uniqueId } from '@terseware/proto/internal';
 import { cn } from '@terseware/ui/utils';
 import type { ClassValue } from 'clsx';
 
@@ -26,7 +26,6 @@ export function toTerseIcon(name: string, svg: `<svg ${string}`): TerseIconData 
   selector: 'svg[terseIcon]',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
-    '[aria-labelledby]': 'id',
     '[attr.fill]': 'fill()',
     '[attr.stroke]': 'stroke()',
     '[attr.viewBox]': 'viewBox()',
@@ -40,7 +39,7 @@ export function toTerseIcon(name: string, svg: `<svg ${string}`): TerseIconData 
     xmlns: 'http://www.w3.org/2000/svg',
   },
   schemas: [NO_ERRORS_SCHEMA],
-  template: `<title [id]="id">{{ data.name() }}</title><g [innerHTML]="svgChildren()" />`,
+  template: `<g [innerHTML]="svgChildren()" />`,
 })
 export class TerseIcon {
   private readonly sanitizer = inject(DomSanitizer);

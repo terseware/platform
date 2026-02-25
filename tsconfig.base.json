@@ -41,7 +41,10 @@
       "@terseware/ui/icon": ["packages/ui/icon/src/index.ts"],
       "@terseware/ui/theme": ["packages/ui/theme/src/index.ts"],
       "@terseware/proto/tooltip": ["packages/proto/tooltip/src/index.ts"],
-      "@terseware/ui/tooltip": ["packages/ui/tooltip/src/index.ts"]
+      "@terseware/ui/tooltip": ["packages/ui/tooltip/src/index.ts"],
+      "@terseware/proto/internal": ["packages/proto/internal/src/index.ts"],
+      "@terseware/proto/interactions": ["packages/proto/interactions/src/index.ts"],
+      "@terseware/proto/anchor": ["packages/proto/anchor/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]
