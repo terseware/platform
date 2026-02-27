@@ -114,7 +114,7 @@ router-outlet {
 
 @layer base {
   * {
-    @apply border-border outline-ring/50 shadow-black/20 focus-visible:z-1 dark:shadow-black/80;
+    @apply border-border ring-ring/50 outline-ring/50 shadow-black/20 focus-visible:z-1 dark:shadow-black/80;
   }
   :root {
     @apply flex h-dvh w-dvw flex-col;

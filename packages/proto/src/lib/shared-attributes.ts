@@ -1,9 +1,10 @@
 import type { WritableSignal } from '@angular/core';
 import { signal } from '@angular/core';
+import { uniqueId } from '@terseware/proto/internal';
 import { hostBinding } from '@terseware/proto/utils';
 import { Resolvable } from './resolvable';
 
-type ArrayAttrMap = Record<symbol, string>;
+type ArrayAttrMap = Record<string, string>;
 
 @Resolvable({ host: true })
 export class SharedAttributes {
@@ -22,13 +23,13 @@ export class SharedAttributes {
     hostBinding('attr.aria-labelledby', () => this.#joinArray(this.#ariaLabelledBy()));
   }
 
-  #arraySet(map: WritableSignal<ArrayAttrMap>, id: string): () => void {
-    id = id.trim();
-    const symbol = Symbol.for(id);
-    map.update(ids => ({ ...ids, [symbol]: id }));
+  #arraySet(map: WritableSignal<ArrayAttrMap>, value: string): () => void {
+    value = value.trim();
+    const id = uniqueId('shared-attribute');
+    map.update(ids => ({ ...ids, [id]: value }));
     return () => {
       map.update(ids => {
-        const { [symbol]: _, ...rest } = ids;
+        const { [id]: _, ...rest } = ids;
         return rest;
       });
     };

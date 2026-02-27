@@ -8,9 +8,7 @@ import { ProtoTooltipTrigger } from './proto-tooltip-trigger';
   exportAs: 'protoTooltip',
   host: {
     '[id]': 'id',
-    tabindex: '-1',
     role: 'tooltip',
-    'aria-live': 'polite',
     '[style]': 'styles()',
     '[attr.data-align]': 'align()',
     '[attr.data-side]': 'side()',
@@ -51,8 +49,7 @@ export class ProtoTooltip {
 
   constructor() {
     this.#trigger.tooltip.set(this);
-    onDestroy(this.#trigger.sharedAttr.ariaDescribedby(this.id));
-
+    onDestroy(() => this.#trigger.tooltip.set(null));
     afterEveryRender(() => {
       const style = getComputedStyle(this.element) as { positionArea?: TooltipSide };
       this.#align.update(align => style.positionArea ?? align);

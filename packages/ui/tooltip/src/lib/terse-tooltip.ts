@@ -27,9 +27,6 @@ import type { ClassValue } from 'clsx';
       ],
     },
   ],
-  host: {
-    '[aria-label]': 'content() || null',
-  },
 })
 export class TerseTooltip {
   readonly #trigger = inject(ProtoTooltipTrigger);
@@ -70,11 +67,9 @@ export class TerseTooltip {
     }
 
     :host(.tooltip-enter:not([data-instant])) {
-      z-index: -1;
       animation: tooltipEnter 150ms ease-in-out;
     }
     :host(.tooltip-leave:not([data-instant])) {
-      z-index: -1;
       animation: tooltipLeave 150ms ease-in-out;
     }
 

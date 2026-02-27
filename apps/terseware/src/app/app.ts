@@ -1,76 +1,34 @@
-import { CdkDrag } from '@angular/cdk/drag-drop';
 import { httpResource } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, signal } from '@angular/core';
+import { RouterLink, RouterOutlet } from '@angular/router';
 import { ProtoButton } from '@terseware/proto/button';
 import type { TooltipSide } from '@terseware/proto/tooltip';
-import { ProtoTooltip, ProtoTooltipArrow, ProtoTooltipTrigger } from '@terseware/proto/tooltip';
 import { hostBinding } from '@terseware/proto/utils';
-import { TerseButton } from '@terseware/ui/button';
 import { TerseIcon, toTerseIcon } from '@terseware/ui/icon';
 import { TerseThemeToggle } from '@terseware/ui/theme';
-import { TerseTooltip } from '@terseware/ui/tooltip';
 
 @Component({
   selector: 'tw-root',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    ProtoTooltipTrigger,
-    ProtoTooltip,
-    ProtoTooltipArrow,
-    CdkDrag,
-    TerseButton,
-    TerseThemeToggle,
-    TerseIcon,
-    ProtoButton,
-    TerseTooltip,
-  ],
+  imports: [RouterOutlet, RouterLink, TerseThemeToggle, TerseIcon, ProtoButton],
   host: { class: 'contents' },
   template: `
-    <header class="bg-surface flex h-16 items-center px-4 py-3" protoTooltipRoot>
-      @if (logoIcon(); as logoIcon) {
-        <svg class="text-primary size-8" fill="currentColor" [terseIcon]="logoIcon"></svg>
-      }
-      <span class="font-mono text-lg tracking-wide"
-        ><span class="mr-px font-semibold">terse</span
-        ><span class="text-on-surface-muted">ware</span></span
-      >
+    <header class="bg-surface flex h-16 items-center px-4 py-3">
+      <a class="inline-flex items-center" protoButton terseTooltip="Home" [routerLink]="['/']">
+        @if (logoIcon(); as logoIcon) {
+          <svg class="text-primary size-8" fill="currentColor" [terseIcon]="logoIcon"></svg>
+        }
+        <span class="font-mono text-lg tracking-wide"
+          ><span class="mr-px font-semibold">terse</span
+          ><span class="text-on-surface-muted">ware</span></span
+        >
+      </a>
       <span class="flex-1"></span>
       <terse-theme-toggle />
-      <div
-        id="button"
-        protoButton
-        [disabled]="true"
-        [focusableWhenDisabled]="focusableWhenDisabled()"
-        (click)="console.log('button click')"
-        (keydown)="console.log('button keydown', $event)"
-      >
-        <div
-          class="m-6"
-          id="div"
-          protoButton
-          [disabled]="false"
-          [focusableWhenDisabled]="false"
-          (click)="console.log('div click')"
-          (keydown)="console.log('div keydown', $event)"
-        >
-          Loading...
-        </div>
-      </div>
     </header>
-    <div class="grid flex-1 place-content-center">
-      <div
-        class="bg-surface grid size-150 resize items-end justify-end overflow-auto contain-strict"
-      >
-        <button
-          cdkDrag
-          terseButton
-          terseTooltip="My sadknsad  sasadsad sa ToolTip sadknsad  sasadsad sa ToolTip sadknsad  sasadsad sa ToolTip"
-          [tooltipSide]="side()"
-        >
-          Button
-        </button>
-      </div>
-    </div>
+    <main>
+      <router-outlet />
+    </main>
   `,
 })
 export class App {

@@ -8,6 +8,7 @@ import {
   inject,
   Injector,
   input,
+  linkedSignal,
   model,
   signal,
   TemplateRef,
@@ -42,8 +43,8 @@ export class ProtoTooltipTrigger {
   readonly #anchor = resolve(Anchor);
   readonly #hover = resolve(Hover);
   readonly #focus = resolve(Focus);
+  readonly #sharedAttr = resolve(SharedAttributes);
   readonly element = injectElement();
-  readonly sharedAttr = resolve(SharedAttributes);
 
   readonly anchorName = this.#anchor.name;
 
@@ -54,7 +55,7 @@ export class ProtoTooltipTrigger {
   readonly tooltipOpen = model<boolean>(false);
   readonly tooltipShowDelay = input<number>(600);
   readonly tooltipHideDelay = input<number>(0);
-  readonly tooltipSide = input<TooltipSide>('left');
+  readonly tooltipSide = input<TooltipSide>('top');
   readonly tooltipOffset = input<string, string | number>('0px', {
     transform: v => (isNumber(v) ? `${v}px` : v || '0px'),
   });
@@ -62,8 +63,7 @@ export class ProtoTooltipTrigger {
   readonly gap = computed(() => {
     const offset = this.tooltipOffset();
     const size = this.arrow()?.arrowSize() ?? '0px';
-    const sizeHalf = this.arrow()?.sizeHalf() ?? '0px';
-    return `calc(${offset} + calc(${size} + ${sizeHalf}) / 2)`;
+    return `calc(${offset} + ${size} * 0.70710678118)`;
   });
 
   readonly tooltip = signal<ProtoTooltip | null>(null);
@@ -74,7 +74,7 @@ export class ProtoTooltipTrigger {
   readonly #isInstant = signal(false);
   readonly isInstant = this.#isInstant.asReadonly();
 
-  readonly #hoverSources = signal([this.#hover.isHovered.asReadonly()]);
+  readonly #hoverSources = signal([linkedSignal(() => this.#hover.isHovered())]);
 
   constructor() {
     effect(onCleanup => {
@@ -100,14 +100,20 @@ export class ProtoTooltipTrigger {
       });
     });
 
+    effect(onCleanup => {
+      const tooltip = this.tooltip();
+      if (tooltip) {
+        onCleanup(this.#sharedAttr.ariaDescribedby(tooltip.id));
+      }
+    });
+
     this.#setupListeners();
   }
 
-  addHoverSource(source: Signal<boolean>): () => void {
-    this.#hoverSources.update(sources => [...sources, source]);
-    return () => {
-      this.#hoverSources.update(sources => sources.filter(s => s !== source));
-    };
+  addHoverSource(value: Signal<boolean>): () => void {
+    const source = linkedSignal(value);
+    this.#hoverSources.update(src => [...src, source]);
+    return () => this.#hoverSources.update(src => src.filter(s => s !== source));
   }
 
   #setupListeners() {
@@ -122,12 +128,23 @@ export class ProtoTooltipTrigger {
       { document: true },
     );
 
+    hostBinding(
+      '(click)',
+      () => {
+        this.#isInstant.set(true);
+        setTimeout(() => this.tooltipOpen.set(false));
+      },
+      { document: true },
+    );
+
     hostBinding('(pointerdown)', () => {
+      // Reset hover sources to prevent tooltip from showing if the user immediately clicks away
+      this.#hoverSources().forEach(source => source.set(false));
       this.#isInstant.set(true);
       setTimeout(() => this.tooltipOpen.set(false));
     });
 
-    onChange(this.#focus.isFocused, focused => {
+    onChange(this.#focus.isFocusVisible, focused => {
       this.#isInstant.set(true);
       setTimeout(() => this.tooltipOpen.set(focused));
     });
@@ -162,6 +179,7 @@ export class ProtoTooltipTrigger {
   },
   styles: `
     :host {
+      --hover-buffer: 6px;
       container-type: anchored;
       position-anchor: var(--trigger);
       position-area: var(--side);
@@ -173,14 +191,15 @@ export class ProtoTooltipTrigger {
     }
     :host[data-align='top'],
     :host[data-align='bottom'] {
-      width: calc(8px + anchor-size(var(--tooltip) width));
-      height: calc(4px + anchor-size(var(--tooltip) height) + var(--gap));
+      width: calc(var(--hover-buffer) + anchor-size(var(--tooltip) width));
+      height: calc(var(--hover-buffer) + anchor-size(var(--tooltip) height) + var(--gap));
     }
     :host[data-align='left'],
     :host[data-align='right'] {
-      width: calc(4px + anchor-size(var(--tooltip) width) + var(--gap));
+      width: calc(var(--hover-buffer) + anchor-size(var(--tooltip) width) + var(--gap));
       height: calc(
-        8px + min(anchor-size(var(--tooltip) height), anchor-size(var(--trigger) height))
+        var(--hover-buffer) +
+          min(anchor-size(var(--tooltip) height), anchor-size(var(--trigger) height))
       );
     }
   `,

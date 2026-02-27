@@ -1,5 +1,6 @@
-import { afterNextRender, computed, Directive, inject, input, signal } from '@angular/core';
-import { isNumber } from '@terseware/proto/internal';
+import { isPlatformBrowser } from '@angular/common';
+import { computed, Directive, inject, input, PLATFORM_ID, signal } from '@angular/core';
+import { isNumber, onDestroy } from '@terseware/proto/internal';
 import { ProtoTooltip } from './proto-tooltip';
 import { ProtoTooltipTrigger } from './proto-tooltip-trigger';
 
@@ -43,20 +44,19 @@ export class ProtoTooltipArrow {
     return styles;
   });
 
+  #rafId: number | null = null;
+
   constructor() {
     this.#trigger.arrow.set(this);
 
-    afterNextRender(() => {
-      this.#calculatePosition();
-    });
+    if (isPlatformBrowser(inject(PLATFORM_ID))) {
+      this.#rafId = requestAnimationFrame(() => this.#calculatePosition());
+    }
 
-    // hostBinding(
-    //   '(animationend)',
-    //   () => {
-    //     this.#calculatePosition();
-    //   },
-    //   { element: this.tooltip.element },
-    // );
+    onDestroy(() => {
+      if (this.#rafId !== null) {cancelAnimationFrame(this.#rafId);}
+      this.#trigger.arrow.set(null);
+    });
   }
 
   #calculatePosition() {
@@ -90,6 +90,6 @@ export class ProtoTooltipArrow {
       }
     }
 
-    requestAnimationFrame(() => this.#calculatePosition());
+    this.#rafId = requestAnimationFrame(() => this.#calculatePosition());
   }
 }
