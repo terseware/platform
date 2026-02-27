@@ -2,6 +2,7 @@ import { httpResource } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, signal } from '@angular/core';
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { ProtoButton } from '@terseware/proto/button';
+import { ProtoLazyScrollable } from '@terseware/proto/scrolling';
 import type { TooltipSide } from '@terseware/proto/tooltip';
 import { hostBinding } from '@terseware/proto/utils';
 import { TerseIcon, toTerseIcon } from '@terseware/ui/icon';
@@ -10,7 +11,14 @@ import { TerseThemeToggle } from '@terseware/ui/theme';
 @Component({
   selector: 'tw-root',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, RouterLink, TerseThemeToggle, TerseIcon, ProtoButton],
+  imports: [
+    RouterOutlet,
+    RouterLink,
+    TerseThemeToggle,
+    TerseIcon,
+    ProtoButton,
+    ProtoLazyScrollable,
+  ],
   host: { class: 'contents' },
   template: `
     <header class="bg-surface flex h-16 items-center px-4 py-3">
@@ -26,6 +34,23 @@ import { TerseThemeToggle } from '@terseware/ui/theme';
       <span class="flex-1"></span>
       <terse-theme-toggle />
     </header>
+    <div
+      #scrollable="protoLazyScrollable"
+      protoLazyScrollable
+      style="min-height: 100px;
+               max-height: 100px;
+               min-width: 100px;
+               max-width: 100px;
+               overflow: auto;"
+    >
+      <div
+        style="min-height: 200px;
+                 max-height: 200px;
+                 min-width: 200px;
+                 max-width: 200px;"
+      ></div>
+    </div>
+    {{ scrollable.lazyScrollTop() }}
     <main>
       <router-outlet />
     </main>

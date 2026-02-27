@@ -3,12 +3,12 @@ import {
   Component,
   computed,
   Directive,
+  DOCUMENT,
   inject,
   input,
   model,
 } from '@angular/core';
 import { ProtoTooltip, ProtoTooltipArrow, ProtoTooltipTrigger } from '@terseware/proto/tooltip';
-import { Theme } from '@terseware/ui/theme';
 import { cn } from '@terseware/ui/utils';
 import type { ClassValue } from 'clsx';
 
@@ -43,7 +43,6 @@ export class TerseTooltip {
   hostDirectives: [ProtoTooltip],
   imports: [ProtoTooltipArrow],
   host: {
-    '[style.color-scheme]': 'theme.inverseTheme()',
     '[class]': 'classValue()',
     'animate.enter': 'tooltip-enter',
     'animate.leave': 'tooltip-leave',
@@ -104,11 +103,14 @@ export class TerseTooltip {
   `,
 })
 class _TerseTooltip {
+  readonly inverseTheme = inject(DOCUMENT).documentElement.classList.contains('dark')
+    ? 'light'
+    : 'dark';
   readonly tooltip = inject(TerseTooltip);
-  readonly theme = inject(Theme);
   readonly class = input<ClassValue>();
   readonly classValue = computed(() =>
     cn(
+      this.inverseTheme,
       'bg-surface-light text-on-surface relative inline-block w-fit max-w-xs rounded-md px-2 py-1.5 text-xs text-balance',
       this.class(),
     ),

@@ -1,7 +1,7 @@
 import { effect, inject, Injector, signal } from '@angular/core';
 import { Resolvable } from '@terseware/proto';
-import { injectElement, listener, runInDestroyer } from '@terseware/proto/internal';
-import { bindable, hostBinding } from '@terseware/proto/utils';
+import { injectElement, runInDestroyer } from '@terseware/proto/internal';
+import { bindable, hostBinding, listener } from '@terseware/proto/utils';
 
 @Resolvable({ host: true })
 export class Press {

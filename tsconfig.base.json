@@ -44,7 +44,8 @@
       "@terseware/ui/tooltip": ["packages/ui/tooltip/src/index.ts"],
       "@terseware/proto/internal": ["packages/proto/internal/src/index.ts"],
       "@terseware/proto/interactions": ["packages/proto/interactions/src/index.ts"],
-      "@terseware/proto/anchor": ["packages/proto/anchor/src/index.ts"]
+      "@terseware/proto/anchor": ["packages/proto/anchor/src/index.ts"],
+      "@terseware/proto/scrolling": ["packages/proto/scrolling/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]

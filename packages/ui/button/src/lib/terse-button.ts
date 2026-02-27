@@ -82,10 +82,6 @@ export class TerseButton {
     transform: booleanAttribute,
   });
 
-  readonly focusableWhenDisabled = input<boolean, BooleanInput>(false, {
-    transform: booleanAttribute,
-  });
-
   readonly loading = input<boolean, BooleanInput>(false, {
     transform: booleanAttribute,
   });

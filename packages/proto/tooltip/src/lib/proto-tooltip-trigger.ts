@@ -110,10 +110,10 @@ export class ProtoTooltipTrigger {
     this.#setupListeners();
   }
 
-  addHoverSource(value: Signal<boolean>): () => void {
-    const source = linkedSignal(value);
-    this.#hoverSources.update(src => [...src, source]);
-    return () => this.#hoverSources.update(src => src.filter(s => s !== source));
+  addHoverSource(source: Signal<boolean>): () => void {
+    const ctrl = linkedSignal(source);
+    this.#hoverSources.update(src => [...src, ctrl]);
+    return () => this.#hoverSources.update(src => src.filter(s => s !== ctrl));
   }
 
   #setupListeners() {
@@ -169,7 +169,6 @@ export class ProtoTooltipTrigger {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: ``,
   host: {
-    tabindex: '-1',
     'aria-hidden': 'true',
     '[style.--trigger]': 'triggerAnchorName',
     '[style.--tooltip]': 'tooltipAnchorName()',

@@ -8,7 +8,6 @@ import { ProtoTooltipTrigger } from './proto-tooltip-trigger';
   selector: '[protoTooltipArrow]',
   exportAs: 'protoTooltipArrow',
   host: {
-    tabindex: '-1',
     'aria-hidden': 'true',
     '[style]': 'styles()',
   },
@@ -54,7 +53,9 @@ export class ProtoTooltipArrow {
     }
 
     onDestroy(() => {
-      if (this.#rafId !== null) {cancelAnimationFrame(this.#rafId);}
+      if (this.#rafId !== null) {
+        cancelAnimationFrame(this.#rafId);
+      }
       this.#trigger.arrow.set(null);
     });
   }
