@@ -1,6 +1,6 @@
 export * from './lib/computed-previous';
 export * from './lib/deep-merge/deep-merge';
-export * from './lib/destroyer';
+export * from './lib/destroy';
 export * from './lib/element-ref';
 export * from './lib/host-binding/bind-attr';
 export * from './lib/host-binding/bind-style';

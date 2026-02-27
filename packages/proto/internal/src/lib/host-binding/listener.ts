@@ -30,9 +30,9 @@ export function listener<const K extends keyof HTMLElementEventMap>(
       isBoolean(config)
         ? { capture: true }
         : {
-            capture: config?.capture ?? false,
-            once: config?.once ?? false,
-            passive: config?.passive ?? false,
+            ...config,
+            // Default to capture if document unless otherwise specified
+            capture: config?.capture ?? options?.document === true,
           },
     );
     const rmDestroy = destroyRef.onDestroy(() => rmListen());

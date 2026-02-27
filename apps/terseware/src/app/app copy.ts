@@ -1,29 +1,14 @@
-import { CdkDrag } from '@angular/cdk/drag-drop';
 import { httpResource } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, signal } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
 import { ProtoButton } from '@terseware/proto/button';
-import type { TooltipSide } from '@terseware/proto/tooltip';
-import { ProtoTooltip, ProtoTooltipArrow, ProtoTooltipTrigger } from '@terseware/proto/tooltip';
-import { hostBinding } from '@terseware/proto/utils';
-import { TerseButton } from '@terseware/ui/button';
 import { TerseIcon, toTerseIcon } from '@terseware/ui/icon';
 import { TerseThemeToggle } from '@terseware/ui/theme';
-import { TerseTooltip } from '@terseware/ui/tooltip';
 
 @Component({
   selector: 'tw-root',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    ProtoTooltipTrigger,
-    ProtoTooltip,
-    ProtoTooltipArrow,
-    CdkDrag,
-    TerseButton,
-    TerseThemeToggle,
-    TerseIcon,
-    ProtoButton,
-    TerseTooltip,
-  ],
+  imports: [RouterOutlet, TerseThemeToggle, TerseIcon, ProtoButton],
   host: { class: 'contents' },
   template: `
     <header class="bg-surface flex h-16 items-center px-4 py-3" protoTooltipRoot>
@@ -57,20 +42,35 @@ import { TerseTooltip } from '@terseware/ui/tooltip';
         </div>
       </div>
     </header>
+    <main>
+      <router-outlet />
+    </main>
     <div class="grid flex-1 place-content-center">
-      <div
-        class="bg-surface grid size-150 resize items-end justify-end overflow-auto contain-strict"
-      >
-        <button
-          cdkDrag
-          terseButton
-          terseTooltip="My sadknsad  sasadsad sa ToolTip sadknsad  sasadsad sa ToolTip sadknsad  sasadsad sa ToolTip"
-          [tooltipSide]="side()"
-        >
-          Button
-        </button>
+      <div class="bg-surface-light grid size-100 place-content-center">
+        <div class="anchor bg-primary size-20"></div>
+        <div class="target">
+          <div
+            class="light bg-surface-light text-on-surface relative inline-block w-fit max-w-xs rounded-md px-2 py-1.5 text-xs text-balance"
+          >
+            My ToolTip
+          </div>
+        </div>
       </div>
     </div>
+  `,
+  styles: `
+    .anchor {
+      anchor-name: --anchor;
+    }
+
+    .target {
+      position: absolute;
+      container-type: anchored;
+      block-size: anchor-size();
+      inline-size: calc(100vw - anchor-size());
+      inset-block-start: anchor(--anchor start);
+      inset-inline-start: anchor(--anchor end);
+    }
   `,
 })
 export class App {
@@ -82,27 +82,4 @@ export class App {
   console = console;
 
   readonly focusableWhenDisabled = signal(true);
-
-  readonly side = signal<TooltipSide>('top');
-
-  constructor() {
-    hostBinding(
-      '(keydown)',
-      event => {
-        if (event.key === 'ArrowUp') {
-          this.side.set('top');
-        }
-        if (event.key === 'ArrowDown') {
-          this.side.set('bottom');
-        }
-        if (event.key === 'ArrowLeft') {
-          this.side.set('left');
-        }
-        if (event.key === 'ArrowRight') {
-          this.side.set('right');
-        }
-      },
-      { document: true },
-    );
-  }
 }

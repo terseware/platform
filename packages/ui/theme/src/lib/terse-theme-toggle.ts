@@ -4,6 +4,7 @@ import { ProtoButton } from '@terseware/proto/button';
 import type { TerseButtonVariants } from '@terseware/ui/button';
 import { terseButtonVariants } from '@terseware/ui/button';
 import { TerseIcon, toTerseIcon } from '@terseware/ui/icon';
+import { TerseTooltip } from '@terseware/ui/tooltip';
 import { cn } from '@terseware/ui/utils';
 import type { ClassValue } from 'clsx';
 import { Theme } from './theme';
@@ -13,6 +14,7 @@ import { Theme } from './theme';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TerseIcon],
   hostDirectives: [
+    TerseTooltip,
     {
       directive: ProtoButton,
       inputs: ['disabled', 'focusableWhenDisabled', 'tabIndex', 'role', 'type'],
@@ -20,13 +22,13 @@ import { Theme } from './theme';
   ],
   host: {
     'data-slot': 'button',
-    'aria-label': 'Toggle Theme',
     '[class]': 'classValue()',
-    '(click)': 'console.log("terse-theme-toggle click"); theme.toggleTheme()',
+    '(click)': 'theme.toggleTheme()',
   },
   template: `<svg [terseIcon]="terseIcon()"></svg><ng-content />`,
 })
 export class TerseThemeToggle {
+  readonly #tooltip = inject(TerseTooltip);
   readonly theme = inject(Theme);
 
   readonly terseIcon = computed(() =>
@@ -43,5 +45,7 @@ export class TerseThemeToggle {
     cn(terseButtonVariants({ variant: this.variant(), size: this.size(), class: this.class() })),
   );
 
-  console = console;
+  constructor() {
+    this.#tooltip.content.set('Toggle Theme');
+  }
 }

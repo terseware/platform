@@ -17,7 +17,7 @@ import { cva } from 'class-variance-authority';
 import type { ClassValue } from 'clsx';
 
 export const terseButtonVariants = cva(
-  "group/button data-focus-visible:ring-ring/70 inline-flex shrink-0 items-center justify-center rounded-md bg-clip-padding text-sm font-semibold whitespace-nowrap transition-colors duration-300 outline-none select-none data-disabled:pointer-events-none data-disabled:opacity-50 data-disabled-focusable:pointer-events-none data-disabled-focusable:opacity-50 data-focus-visible:ring-3 data-press:duration-0 [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/button data-focus-visible:ring-ring/70 inline-flex shrink-0 items-center justify-center rounded-md bg-clip-padding text-sm font-semibold whitespace-nowrap transition-colors duration-300 outline-none select-none data-disabled:pointer-events-none data-disabled:opacity-50 data-focus-visible:ring-3 data-press:duration-0 [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
@@ -79,6 +79,10 @@ export type TerseButtonVariants = VariantProps<typeof terseButtonVariants>;
 })
 export class TerseButton {
   readonly disabled = input<boolean, BooleanInput>(false, {
+    transform: booleanAttribute,
+  });
+
+  readonly focusableWhenDisabled = input<boolean, BooleanInput>(false, {
     transform: booleanAttribute,
   });
 

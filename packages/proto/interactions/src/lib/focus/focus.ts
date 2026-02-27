@@ -39,7 +39,7 @@ function shouldShowFocusVisible(origin: FocusOrigin, element: HTMLElement): bool
   return alwaysShowFocus(element);
 }
 
-@Resolvable()
+@Resolvable({ host: true })
 export class Focus {
   readonly #element = injectElement();
   readonly #focusMonitor = inject(FocusMonitor);

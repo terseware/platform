@@ -3,7 +3,7 @@ import { Resolvable } from '@terseware/proto';
 import { injectElement, listener, runInDestroyer } from '@terseware/proto/internal';
 import { bindable, hostBinding } from '@terseware/proto/utils';
 
-@Resolvable()
+@Resolvable({ host: true })
 export class Press {
   readonly #element = injectElement();
   readonly #injector = inject(Injector);
@@ -47,12 +47,7 @@ export class Press {
       });
     });
 
-    effect(onCleanup => {
-      if (!this.disabled()) {
-        const listeners = createListeners();
-        onCleanup(listeners.destroy);
-      }
-    });
+    effect(onCleanup => !this.disabled() && onCleanup(createListeners()));
   }
 
   #reset(): void {

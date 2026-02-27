@@ -33,7 +33,7 @@ if (typeof document !== 'undefined') {
   });
 }
 
-@Resolvable()
+@Resolvable({ host: true })
 export class Hover {
   #localIgnoreMouseEvents = false;
 
@@ -51,12 +51,7 @@ export class Hover {
       hostBinding('(mouseleave)', event => this.#onMouseLeave(event));
     });
 
-    effect(onCleanup => {
-      if (!this.disabled()) {
-        const listeners = createListeners();
-        onCleanup(listeners.destroy);
-      }
-    });
+    effect(onCleanup => !this.disabled() && onCleanup(createListeners()));
   }
 
   #onHoverBegin(event: Event, pointerType: string): void {

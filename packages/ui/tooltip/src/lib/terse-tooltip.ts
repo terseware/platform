@@ -1,14 +1,13 @@
 import {
-  afterNextRender,
   ChangeDetectionStrategy,
   Component,
   computed,
   Directive,
   inject,
   input,
+  model,
 } from '@angular/core';
-import { resolve } from '@terseware/proto';
-import { TooltipArrow, TooltipTrigger } from '@terseware/proto/tooltip';
+import { ProtoTooltip, ProtoTooltipArrow, ProtoTooltipTrigger } from '@terseware/proto/tooltip';
 import { Theme } from '@terseware/ui/theme';
 import { cn } from '@terseware/ui/utils';
 import type { ClassValue } from 'clsx';
@@ -16,34 +15,36 @@ import type { ClassValue } from 'clsx';
 @Directive({
   selector: '[terseTooltip]',
   exportAs: 'terseTooltip',
+  hostDirectives: [
+    {
+      directive: ProtoTooltipTrigger,
+      inputs: [
+        'tooltipOpen',
+        'tooltipShowDelay',
+        'tooltipHideDelay',
+        'tooltipSide',
+        'tooltipOffset',
+      ],
+    },
+  ],
   host: {
-    '[aria-label]': 'terseTooltip() || null',
+    '[aria-label]': 'content() || null',
   },
 })
 export class TerseTooltip {
-  readonly terseTooltip = input<string>();
+  readonly #trigger = inject(ProtoTooltipTrigger);
+  readonly content = model<string | null>(null, { alias: 'terseTooltip' });
 
   constructor() {
-    const trigger = resolve(TooltipTrigger, { content: _TerseTooltip });
-    afterNextRender(() => {
-      setTimeout(() => {
-        trigger.open.set(true);
-      }, 1000);
-    });
-  }
-}
-
-@Directive({ selector: '[terseTooltipArrow]' })
-class _TerseTooltipArrow {
-  constructor() {
-    resolve(TooltipArrow);
+    this.#trigger.content.set(_TerseTooltip);
   }
 }
 
 @Component({
   selector: 'terse-tooltip',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [_TerseTooltipArrow],
+  hostDirectives: [ProtoTooltip],
+  imports: [ProtoTooltipArrow],
   host: {
     '[style.color-scheme]': 'theme.inverseTheme()',
     '[class]': 'classValue()',
@@ -51,6 +52,32 @@ class _TerseTooltipArrow {
     'animate.leave': 'tooltip-leave',
   },
   styles: `
+    :host([data-align='top']) {
+      --terse-tooltip-y: var(--proto-tooltip-gap);
+    }
+    :host([data-align='bottom']) {
+      --terse-tooltip-y: calc(var(--proto-tooltip-gap) * -1);
+    }
+    :host([data-align='left']) {
+      --terse-tooltip-x: var(--proto-tooltip-gap);
+    }
+    :host([data-align='right']) {
+      --terse-tooltip-x: calc(var(--proto-tooltip-gap) * -1);
+    }
+
+    :host {
+      transform-origin: var(--proto-tooltip-arrow-left) var(--proto-tooltip-arrow-top);
+    }
+
+    :host(.tooltip-enter:not([data-instant])) {
+      z-index: -1;
+      animation: tooltipEnter 150ms ease-in-out;
+    }
+    :host(.tooltip-leave:not([data-instant])) {
+      z-index: -1;
+      animation: tooltipLeave 150ms ease-in-out;
+    }
+
     @keyframes tooltipEnter {
       from {
         translate: var(--terse-tooltip-x, 0) var(--terse-tooltip-y, 0);
@@ -75,46 +102,19 @@ class _TerseTooltipArrow {
         opacity: 0;
       }
     }
-
-    :host([data-align='top']) {
-      --terse-tooltip-y: 5px;
-      --terse-tooltip-align: bottom;
-    }
-    :host([data-align='bottom']) {
-      --terse-tooltip-y: -5px;
-      --terse-tooltip-align: top;
-    }
-    :host([data-align='left']) {
-      --terse-tooltip-x: 5px;
-      --terse-tooltip-align: right;
-    }
-    :host([data-align='right']) {
-      --terse-tooltip-x: -5px;
-      --terse-tooltip-align: left;
-    }
-
-    :host(.tooltip-enter:not([data-instant])) {
-      transform-origin: var(--terse-tooltip-align);
-      animation: tooltipEnter 100ms ease-in-out;
-    }
-    :host(.tooltip-leave:not([data-instant])) {
-      transform-origin: var(--terse-tooltip-align);
-      animation: tooltipLeave 100ms ease-in-out;
-    }
   `,
   template: `
-    <div terseTooltipArrow></div>
-    {{ tooltip.terseTooltip() }}
+    <span>{{ tooltip.content() }}</span>
+    <span class="bg-inherit" protoTooltipArrow></span>
   `,
 })
 class _TerseTooltip {
   readonly tooltip = inject(TerseTooltip);
   readonly theme = inject(Theme);
-  readonly arrow = input(true);
   readonly class = input<ClassValue>();
   readonly classValue = computed(() =>
     cn(
-      'bg-surface-light text-on-surface relative block w-fit max-w-xs rounded-md px-2 py-1.5 text-xs text-balance',
+      'bg-surface-light text-on-surface relative inline-block w-fit max-w-xs rounded-md px-2 py-1.5 text-xs text-balance',
       this.class(),
     ),
   );

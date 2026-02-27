@@ -31,21 +31,17 @@ export class Button {
   readonly type = bindable<string | null>(null);
 
   constructor() {
-    const interact = resolve(
-      Interact,
-      {
-        disabled: this.disabled,
-        focusableWhenDisabled: this.focusableWhenDisabled,
-        tabIndex: this.tabIndex,
-      },
-      { inherit: true },
-    );
+    const interact = resolve(Interact, {
+      disabled: this.disabled,
+      focusableWhenDisabled: this.focusableWhenDisabled,
+      tabIndex: this.tabIndex,
+    });
 
-    resolve(Hover, { disabled: interact.disabled }, { inherit: true });
-    resolve(Press, { disabled: interact.disabled }, { inherit: true });
+    resolve(Hover, { disabled: interact.disabled });
+    resolve(Press, { disabled: interact.disabled });
 
-    // When disabled and focusableWhenDisabled is true, still allow focus interactions
-    resolve(Focus, { disabled: interact.hardDisabled }, { inherit: true });
+    // When focusableWhenDisabled is true, still allow focus interactions
+    resolve(Focus, { disabled: interact.hardDisabled });
 
     hostBinding('attr.role', () => {
       const val = this.role();
