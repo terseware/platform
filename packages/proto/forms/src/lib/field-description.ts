@@ -1,7 +1,7 @@
 import { Directive, effect, inject, input, runInInjectionContext } from '@angular/core';
 import type { FieldTree } from '@angular/forms/signals';
 import { scoped, uniqueId } from '@terseware/utils';
-import { FieldContext } from './field-context';
+import { ProtoFieldContext } from './field-context';
 
 @Directive({
   selector: '[protoFieldDescription]',
@@ -20,7 +20,7 @@ export class ProtoFieldDescription<T> {
   constructor() {
     effect(() => {
       for (const field of this.field()().formFieldBindings()) {
-        const context = runInInjectionContext(field.injector, () => inject(FieldContext<T>));
+        const context = runInInjectionContext(field.injector, () => inject(ProtoFieldContext<T>));
         scoped(() => context.addDescription(this));
       }
     });

@@ -1,16 +1,16 @@
 import { afterRenderEffect, inject, signal, untracked } from '@angular/core';
 import { Resolvable } from '@terseware/proto';
-import { bindable, ElementRenderer, injectElement, isomorphicEffect } from '@terseware/utils';
+import { ElementRenderer, injectElement, isomorphicEffect } from '@terseware/utils';
 
 @Resolvable()
 export class Intersect {
   readonly #element = injectElement();
   readonly #renderer = inject(ElementRenderer);
 
-  readonly disabled = bindable(false);
-  readonly threshold = bindable<number | number[]>(0);
-  readonly root = bindable<Element | null>(null);
-  readonly rootMargin = bindable<string>('0px');
+  readonly disabled = signal(false);
+  readonly threshold = signal<number | number[]>(0);
+  readonly root = signal<Element | null>(null);
+  readonly rootMargin = signal<string>('0px');
 
   readonly isIntersecting = signal(false);
 

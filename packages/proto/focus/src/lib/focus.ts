@@ -1,15 +1,9 @@
 import type { FocusOrigin } from '@angular/cdk/a11y';
 import { FocusMonitor } from '@angular/cdk/a11y';
-import { computed, inject } from '@angular/core';
+import { computed, inject, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { Resolvable } from '@terseware/proto';
-import {
-  bindable,
-  ElementRenderer,
-  injectElement,
-  isNull,
-  isomorphicEffect,
-} from '@terseware/utils';
+import { ElementRenderer, injectElement, isNull, isomorphicEffect } from '@terseware/utils';
 import { combineLatest, of, switchMap } from 'rxjs';
 
 /**
@@ -49,10 +43,10 @@ export class Focus {
   readonly #element = injectElement();
   readonly #focusMonitor = inject(FocusMonitor);
 
-  readonly disabled = bindable(false);
+  readonly disabled = signal(false);
   readonly #disabled$ = toObservable(this.disabled);
 
-  readonly checkChildren = bindable(false);
+  readonly checkChildren = signal(false);
   readonly #checkChildren$ = toObservable(this.checkChildren);
 
   readonly focusOrigin = toSignal(

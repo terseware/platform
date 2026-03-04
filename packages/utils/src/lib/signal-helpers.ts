@@ -1,5 +1,5 @@
-import type { EffectRef, Injector } from '@angular/core';
-import { effect, untracked } from '@angular/core';
+import type { CreateEffectOptions, EffectRef, Injector, WritableSignal } from '@angular/core';
+import { computed, effect, untracked } from '@angular/core';
 import { computedPrevious } from 'ngxtension/computed-previous';
 
 /** Listen for changes to a signal and call a function when the signal changes.*/
@@ -25,4 +25,14 @@ export function onBoolChange(
   options?: { injector?: Injector },
 ): EffectRef {
   return onChange(source, value => (value ? onTrue?.() : onFalse?.()), options);
+}
+
+/** Bind a writable signal to a reactive source. */
+export function signalBind<const T>(
+  target: WritableSignal<T>,
+  source: () => T,
+  options?: CreateEffectOptions,
+): EffectRef {
+  const value = computed(() => source());
+  return effect(() => target.set(value()), options);
 }

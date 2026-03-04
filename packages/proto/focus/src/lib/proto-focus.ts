@@ -1,7 +1,7 @@
 import type { FocusOrigin } from '@angular/cdk/a11y';
 import type { BooleanInput } from '@angular/cdk/coercion';
 import { booleanAttribute, Directive, inject, input, output } from '@angular/core';
-import { onChange } from '@terseware/utils';
+import { onChange, signalBind } from '@terseware/utils';
 import { Focus } from './focus';
 
 @Directive({
@@ -45,8 +45,8 @@ export class ProtoFocus {
   readonly focusOrigin = this.#focus.focusOrigin;
 
   constructor() {
-    this.#focus.disabled.set(this.disabled);
-    this.#focus.checkChildren.set(this.checkChildren);
+    signalBind(this.#focus.disabled, this.disabled);
+    signalBind(this.#focus.checkChildren, this.checkChildren);
     onChange(this.focusOrigin, origin => this.focusChange.emit(origin));
   }
 

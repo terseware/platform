@@ -12,6 +12,7 @@ import { lucideLoaderCircle } from '@ng-icons/lucide';
 import { Button } from '@terseware/proto/button';
 import { TerseIcon, toTerseIcon } from '@terseware/ui/icon';
 import { cn } from '@terseware/ui/utils';
+import { signalBind } from '@terseware/utils';
 import type { VariantProps } from 'class-variance-authority';
 import { cva } from 'class-variance-authority';
 import type { ClassValue } from 'clsx';
@@ -95,11 +96,11 @@ export class TerseButton {
 
   constructor() {
     const button = inject(Button);
-    button.disabled.set(computed(() => this.disabled() || this.loading()));
-    button.focusableWhenDisabled.set(this.loading);
-    button.tabIndex.set(this.tabIndex);
-    button.role.set(this.role);
-    button.type.set(this.type);
+    signalBind(button.disabled, () => this.disabled() || this.loading());
+    signalBind(button.focusableWhenDisabled, () => this.loading());
+    signalBind(button.tabIndex, this.tabIndex);
+    signalBind(button.role, this.role);
+    signalBind(button.type, this.type);
   }
 
   readonly terseButton = input<TerseButtonVariants['variant'] | ''>();

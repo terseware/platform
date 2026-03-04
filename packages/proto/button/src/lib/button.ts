@@ -1,17 +1,17 @@
-import { inject } from '@angular/core';
+import { inject, signal } from '@angular/core';
 import { Resolvable } from '@terseware/proto';
 import { Focus } from '@terseware/proto/focus';
 import { Hover } from '@terseware/proto/hover';
 import { Interact } from '@terseware/proto/interact';
 import { Press } from '@terseware/proto/press';
 import {
-  bindable,
   ElementRenderer,
   injectElement,
   isNativeAnchorTag,
   isNativeButtonTag,
   isNativeInputTag,
   isomorphicEffect,
+  signalBind,
 } from '@terseware/utils';
 
 @Resolvable()
@@ -31,21 +31,21 @@ export class Button {
     });
   }
 
-  readonly disabled = bindable(false);
-  readonly focusableWhenDisabled = bindable(false);
-  readonly tabIndex = bindable(0);
-  readonly role = bindable<string | null>(null);
-  readonly type = bindable<string | null>(null);
+  readonly disabled = signal(false);
+  readonly focusableWhenDisabled = signal(false);
+  readonly tabIndex = signal(0);
+  readonly role = signal<string | null>(null);
+  readonly type = signal<string | null>(null);
 
   constructor() {
     const interact = inject(Interact);
-    interact.disabled.set(this.disabled);
-    interact.focusableWhenDisabled.set(this.focusableWhenDisabled);
-    interact.tabIndex.set(this.tabIndex);
+    signalBind(interact.disabled, this.disabled);
+    signalBind(interact.focusableWhenDisabled, this.focusableWhenDisabled);
+    signalBind(interact.tabIndex, this.tabIndex);
 
-    inject(Focus).disabled.set(interact.hardDisabled);
-    inject(Hover).disabled.set(interact.disabled);
-    inject(Press).disabled.set(interact.disabled);
+    signalBind(inject(Hover).disabled, interact.disabled);
+    signalBind(inject(Press).disabled, interact.disabled);
+    signalBind(inject(Focus).disabled, interact.hardDisabled); // Allow focus when focusable when disabled is true
 
     isomorphicEffect({
       earlyRead: () => {

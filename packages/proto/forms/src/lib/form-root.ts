@@ -1,17 +1,17 @@
-// import { Directive, inject } from '@angular/core';
-// import { FormRoot } from '@angular/forms/signals';
-// import { injectElement } from '@terseware/utils';
+import { Directive, inject } from '@angular/core';
+import { FormRoot } from '@angular/forms/signals';
+import { injectElement } from '@terseware/utils';
+import { installFieldDataAttributes } from './form-di';
 
-// @Directive({
-//   selector: '[protoFormRoot]',
-//   exportAs: 'protoFormRoot',
-//   hostDirectives: [{ directive: FormRoot, inputs: ['formRoot:protoFormRoot'] }],
-// })
-// export class ProtoFormRoot<T> extends FormRoot<T> {
-//   readonly element = injectElement();
+@Directive({
+  selector: '[proto][formRoot]',
+  exportAs: 'protoFormRoot',
+})
+export class ProtoFormRoot<T> {
+  readonly formRoot = inject(FormRoot<T>);
+  readonly element = injectElement();
 
-//   constructor() {
-//     super();
-//     Object.assign(this, inject(FormRoot, { self: true }));
-//   }
-// }
+  constructor() {
+    installFieldDataAttributes(this.element, () => this.formRoot.fieldTree()().fieldTree());
+  }
+}

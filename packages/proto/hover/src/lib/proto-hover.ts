@@ -1,7 +1,6 @@
 import type { BooleanInput } from '@angular/cdk/coercion';
-import type { Signal } from '@angular/core';
 import { booleanAttribute, Directive, inject, input, output } from '@angular/core';
-import { onChange } from '@terseware/utils';
+import { onChange, signalBind } from '@terseware/utils';
 import { Hover } from './hover';
 
 @Directive({
@@ -26,25 +25,25 @@ export class ProtoHover {
    */
   readonly hoverEnd = output<void>({ alias: 'protoHoverEnd' });
 
-  readonly hoveChange = output<boolean>({ alias: 'protoHoverChange' });
+  readonly hoverChange = output<boolean>({ alias: 'protoHoverChange' });
 
   readonly isHovered = this.#hover.isHovered;
 
   constructor() {
-    this.#hover.disabled.set(this.disabled);
+    signalBind(this.#hover.disabled, this.disabled);
 
     onChange(this.isHovered, isHovered => {
       if (isHovered) {
-        this.hoveChange.emit(true);
+        this.hoverChange.emit(true);
         this.hoverStart.emit();
       } else {
-        this.hoveChange.emit(false);
+        this.hoverChange.emit(false);
         this.hoverEnd.emit();
       }
     });
   }
 
-  setDisabled(disabled: boolean | Signal<boolean>): void {
+  setDisabled(disabled: boolean): void {
     this.#hover.disabled.set(disabled);
   }
 }

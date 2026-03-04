@@ -26,6 +26,7 @@ import {
   isNumber,
   isomorphicEffect,
   onChange,
+  onDestroy,
   scoped,
 } from '@terseware/utils';
 import { debounce, skip, timer } from 'rxjs';
@@ -64,7 +65,7 @@ export class ProtoTooltipTrigger {
   readonly tooltipOpen = model<boolean>(false);
   readonly tooltipShowDelay = input<number>(600);
   readonly tooltipHideDelay = input<number>(0);
-  readonly tooltipSide = input<TooltipSide>('top');
+  readonly tooltipSide = input<TooltipSide>('left');
   readonly tooltipOffset = input<string, string | number>('0px', {
     transform: v => (isNumber(v) ? `${v}px` : v || '0px'),
   });
@@ -102,7 +103,17 @@ export class ProtoTooltipTrigger {
 
   readonly #hoverSources = signal([linkedSignal(() => this.#hover.isHovered())]);
 
+  #openTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
+  #set(data: { isInstant: boolean; tooltipOpen: boolean }): void {
+    this.#isInstant.set(data.isInstant);
+    this.#openTimeoutId && clearTimeout(this.#openTimeoutId);
+    this.#openTimeoutId = setTimeout(() => this.tooltipOpen.set(data.tooltipOpen));
+  }
+
   constructor() {
+    onDestroy(() => this.#openTimeoutId && clearTimeout(this.#openTimeoutId));
+
     effect(onCleanup => {
       const isOpen = this.tooltipOpen();
       const content = this.content();
@@ -148,26 +159,22 @@ export class ProtoTooltipTrigger {
   #setupListeners() {
     this.#renderer.listen(this.#doc, 'keydown', event => {
       if (event.key === 'Escape') {
-        this.#isInstant.set(true);
-        setTimeout(() => this.tooltipOpen.set(false));
+        this.#set({ isInstant: true, tooltipOpen: false });
       }
     });
 
     this.#renderer.listen(this.#doc, 'click', () => {
-      this.#isInstant.set(true);
-      setTimeout(() => this.tooltipOpen.set(false));
+      this.#set({ isInstant: true, tooltipOpen: false });
     });
 
     this.#renderer.listen(this.element, 'pointerdown', () => {
       // Reset hover sources to prevent tooltip from showing if the user immediately clicks away
       this.#hoverSources().forEach(source => source.set(false));
-      this.#isInstant.set(true);
-      setTimeout(() => this.tooltipOpen.set(false));
+      this.#set({ isInstant: true, tooltipOpen: false });
     });
 
     onChange(this.#focus.isFocusVisible, focused => {
-      this.#isInstant.set(true);
-      setTimeout(() => this.tooltipOpen.set(focused));
+      this.#set({ isInstant: true, tooltipOpen: focused });
     });
 
     toObservable(computed(() => this.#hoverSources().some(s => s())))
@@ -179,8 +186,7 @@ export class ProtoTooltipTrigger {
         takeUntilDestroyed(),
       )
       .subscribe(open => {
-        this.#isInstant.set(false);
-        setTimeout(() => this.tooltipOpen.set(open));
+        this.#set({ isInstant: false, tooltipOpen: open });
       });
   }
 }

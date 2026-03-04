@@ -1,5 +1,6 @@
 import type { BooleanInput, NumberInput } from '@angular/cdk/coercion';
 import { booleanAttribute, Directive, inject, input, numberAttribute } from '@angular/core';
+import { signalBind } from '@terseware/utils';
 import { Button } from './button';
 
 @Directive({
@@ -26,10 +27,10 @@ export class ProtoButton {
   readonly type = input<string | null>(this.button.type());
 
   constructor() {
-    this.button.disabled.set(this.disabled);
-    this.button.focusableWhenDisabled.set(this.focusableWhenDisabled);
-    this.button.tabIndex.set(this.tabIndex);
-    this.button.role.set(this.role);
-    this.button.type.set(this.type);
+    signalBind(this.button.disabled, this.disabled);
+    signalBind(this.button.focusableWhenDisabled, this.focusableWhenDisabled);
+    signalBind(this.button.tabIndex, this.tabIndex);
+    signalBind(this.button.role, this.role);
+    signalBind(this.button.type, this.type);
   }
 }

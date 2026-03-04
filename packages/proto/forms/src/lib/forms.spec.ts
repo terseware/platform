@@ -1,9 +1,12 @@
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { form, FormField, FormRoot } from '@angular/forms/signals';
 import { By } from '@angular/platform-browser';
+import { Interact } from '@terseware/proto/interact';
 import { render } from '@testing-library/angular';
 import { ProtoFieldDescription } from './field-description';
 import { ProtoFieldLabel } from './field-label';
+import { resolver } from './field-metadata';
+import { ProtoFormField } from './form-field';
 
 describe('Forms', () => {
   @Component({
@@ -66,5 +69,69 @@ describe('Forms', () => {
     fixture.detectChanges();
     expect(formField.element).not.toHaveAttribute('aria-describedby', fieldLabelId);
     expect(formField.element).not.toHaveAttribute('aria-labelledby', fieldLabelId);
+  });
+});
+
+describe('Resolver', () => {
+  it('should reactively bind resolver props to the host element', async () => {
+    @Component({
+      selector: 'test-resolver',
+      changeDetection: ChangeDetectionStrategy.OnPush,
+      imports: [FormRoot, FormField, ProtoFormField],
+      template: `
+        <form [formRoot]="form">
+          <input proto [formField]="form.name" />
+        </form>
+      `,
+    })
+    class TestHost {
+      readonly model = signal({ name: 'James', tabIndex: 5 });
+      readonly form = form(this.model, path => {
+        resolver(path.name, Interact, {
+          tabIndex: ctx => ctx.stateOf(path.tabIndex).value(),
+        });
+      });
+    }
+
+    const { fixture } = await render(TestHost);
+    const input = fixture.debugElement.query(By.directive(FormField)).nativeElement as HTMLElement;
+
+    expect(input).toHaveAttribute('tabindex', '5');
+
+    fixture.componentInstance.model.update(m => ({ ...m, tabIndex: 10 }));
+    fixture.detectChanges();
+
+    expect(input).toHaveAttribute('tabindex', '10');
+  });
+
+  it('should support multiple resolvers on the same field', async () => {
+    @Component({
+      selector: 'test-multi-resolver',
+      changeDetection: ChangeDetectionStrategy.OnPush,
+      imports: [FormRoot, FormField, ProtoFormField],
+      template: `
+        <form [formRoot]="form">
+          <input proto [formField]="form.name" />
+        </form>
+      `,
+    })
+    class TestHost {
+      readonly model = signal({ name: 'James', tabIndex: 3 });
+      readonly form = form(this.model, path => {
+        resolver(path.name, Interact, {
+          tabIndex: ctx => ctx.stateOf(path.tabIndex).value(),
+        });
+        resolver(path.name, Interact, {
+          disabled: () => true,
+          focusableWhenDisabled: () => true,
+        });
+      });
+    }
+
+    const { fixture } = await render(TestHost);
+    const el = fixture.debugElement.query(By.directive(FormField)).nativeElement as HTMLElement;
+
+    expect(el).toHaveAttribute('tabindex', '3');
+    expect(el).toHaveAttribute('data-disabled-focusable', '');
   });
 });

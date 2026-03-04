@@ -1,6 +1,6 @@
 import type { BooleanInput, NumberInput } from '@angular/cdk/coercion';
-import type { Signal } from '@angular/core';
 import { booleanAttribute, Directive, inject, input, numberAttribute } from '@angular/core';
+import { signalBind } from '@terseware/utils';
 import { Interact } from './interact';
 
 @Directive({
@@ -24,20 +24,20 @@ export class ProtoInteract {
   });
 
   constructor() {
-    this.#interact.disabled.set(this.disabled);
-    this.#interact.focusableWhenDisabled.set(this.focusableWhenDisabled);
-    this.#interact.tabIndex.set(this.tabIndex);
+    signalBind(this.#interact.disabled, this.disabled);
+    signalBind(this.#interact.focusableWhenDisabled, this.focusableWhenDisabled);
+    signalBind(this.#interact.tabIndex, this.tabIndex);
   }
 
-  setDisabled(disabled: boolean | Signal<boolean>): void {
+  setDisabled(disabled: boolean): void {
     this.#interact.disabled.set(disabled);
   }
 
-  setFocusableWhenDisabled(focusableWhenDisabled: boolean | Signal<boolean>): void {
+  setFocusableWhenDisabled(focusableWhenDisabled: boolean): void {
     this.#interact.focusableWhenDisabled.set(focusableWhenDisabled);
   }
 
-  setTabIndex(tabIndex: number | Signal<number>): void {
+  setTabIndex(tabIndex: number): void {
     this.#interact.tabIndex.set(tabIndex);
   }
 }

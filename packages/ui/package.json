@@ -2,18 +2,18 @@
   "name": "@terseware/ui",
   "version": "0.0.1",
   "peerDependencies": {
-    "@angular/common": "^21.1.0",
-    "@angular/core": "^21.1.0",
-    "@terseware/proto": "0.0.1",
-    "@angular/platform-browser": "^21.1.5",
-    "tailwind-merge": "^3.5.0",
-    "@angular/cdk": "^21.1.5",
+    "@angular/cdk": "^21.2.0",
+    "@angular/common": "^21.2.0",
+    "@angular/core": "^21.2.0",
+    "@angular/platform-browser": "^21.2.0",
     "@ng-icons/lucide": "^33.1.0",
+    "@ngrx/signals": "^21.0.1",
+    "@terseware/proto": "0.0.1",
+    "@terseware/utils": "0.0.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "@ngrx/signals": "^21.0.1",
     "rxjs": "~7.8.2",
-    "@terseware/utils": "0.0.1"
+    "tailwind-merge": "^3.5.0"
   },
   "sideEffects": false,
   "./styles.css": {

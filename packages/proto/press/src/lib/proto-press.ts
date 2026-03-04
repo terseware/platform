@@ -1,13 +1,11 @@
 import type { BooleanInput } from '@angular/cdk/coercion';
-import type { Signal } from '@angular/core';
 import { booleanAttribute, Directive, inject, input, output } from '@angular/core';
-import { onChange } from '@terseware/utils';
+import { onChange, signalBind } from '@terseware/utils';
 import { Press } from './press';
 
 @Directive({
   selector: '[protoPress]',
   exportAs: 'protoPress',
-  providers: [Press],
 })
 export class ProtoPress {
   readonly #press = inject(Press);
@@ -27,25 +25,25 @@ export class ProtoPress {
    */
   readonly pressEnd = output<void>({ alias: 'protoPressEnd' });
 
-  readonly hoveChange = output<boolean>({ alias: 'protoPressChange' });
+  readonly pressChange = output<boolean>({ alias: 'protoPressChange' });
 
   readonly isPressed = this.#press.isPressed;
 
   constructor() {
-    this.#press.disabled.set(this.disabled);
+    signalBind(this.#press.disabled, this.disabled);
 
     onChange(this.isPressed, isPressed => {
       if (isPressed) {
-        this.hoveChange.emit(true);
+        this.pressChange.emit(true);
         this.pressStart.emit();
       } else {
-        this.hoveChange.emit(false);
+        this.pressChange.emit(false);
         this.pressEnd.emit();
       }
     });
   }
 
-  setDisabled(disabled: boolean | Signal<boolean>): void {
+  setDisabled(disabled: boolean): void {
     this.#press.disabled.set(disabled);
   }
 }

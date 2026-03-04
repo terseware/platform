@@ -1,16 +1,10 @@
 import { DOCUMENT, inject, signal } from '@angular/core';
 import { Resolvable } from '@terseware/proto';
-import {
-  bindable,
-  ElementRenderer,
-  injectElement,
-  isomorphicEffect,
-  onDestroy,
-} from '@terseware/utils';
+import { ElementRenderer, injectElement, isomorphicEffect, onDestroy } from '@terseware/utils';
 
 @Resolvable()
 export class Press {
-  readonly disabled = bindable(false);
+  readonly disabled = signal(false);
 
   readonly #isPressed = signal(false);
   readonly isPressed = this.#isPressed.asReadonly();
@@ -36,6 +30,10 @@ export class Press {
     };
 
     renderer.listen(el, 'pointerdown', () => {
+      if (this.disabled()) {
+        return;
+      }
+
       disposableListeners.forEach(dispose => dispose());
       this.#isPressed.set(true);
       disposableListeners = [

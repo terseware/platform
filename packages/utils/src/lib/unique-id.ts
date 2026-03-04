@@ -10,11 +10,11 @@ const uniqueIdMap = new InjectionToken<Map<string, number>>('uniqueIdMap', {
 export function uniqueId<const T extends string>(
   prefix: T,
   injector?: Injector | null | undefined,
-): `proto-${T}-${number}` {
+): `${T}-${number}` {
   return assertInjector(uniqueId, injector, () => {
     const map = inject(uniqueIdMap);
     const id = map.get(prefix) ?? 0;
     map.set(prefix, id + 1);
-    return `proto-${prefix}-${id}` as const;
+    return `${prefix}-${id}` as const;
   });
 }

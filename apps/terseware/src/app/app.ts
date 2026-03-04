@@ -1,6 +1,6 @@
 import { httpResource } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, signal } from '@angular/core';
-import { form, FormField, FormRoot, required } from '@angular/forms/signals';
+import { disabled, form, FormField, FormRoot, required } from '@angular/forms/signals';
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { ProtoButton } from '@terseware/proto/button';
 import {
@@ -8,7 +8,10 @@ import {
   ProtoFieldError,
   ProtoFieldLabel,
   ProtoFormField,
+  ProtoFormRoot,
+  resolver,
 } from '@terseware/proto/forms';
+import { Interact } from '@terseware/proto/interact';
 import { TerseIcon, toTerseIcon } from '@terseware/ui/icon';
 import { TerseThemeToggle } from '@terseware/ui/theme';
 
@@ -16,17 +19,18 @@ import { TerseThemeToggle } from '@terseware/ui/theme';
   selector: 'tw-root',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    RouterOutlet,
-    RouterLink,
-    TerseThemeToggle,
-    TerseIcon,
-    ProtoButton,
-    FormRoot,
     FormField,
+    FormRoot,
+    ProtoButton,
     ProtoFieldDescription,
-    ProtoFieldLabel,
     ProtoFieldError,
+    ProtoFieldLabel,
     ProtoFormField,
+    ProtoFormRoot,
+    RouterLink,
+    RouterOutlet,
+    TerseIcon,
+    TerseThemeToggle,
   ],
   host: { class: 'contents' },
   template: `
@@ -43,11 +47,12 @@ import { TerseThemeToggle } from '@terseware/ui/theme';
       <span class="flex-1"></span>
       <terse-theme-toggle />
     </header>
-    <form [formRoot]="form">
+    <form proto [formRoot]="form">
       @if (showLabel()) {
         <label protoFieldLabel [for]="form.name">Name</label>
       }
       <input proto [formField]="form.name" />
+      <input proto type="number" [formField]="form.tabIndex" />
       @if (showDescription1()) {
         <p [protoFieldDescription]="form.name"></p>
       }
@@ -72,7 +77,9 @@ export class App {
   readonly showLabel = signal(true);
   readonly showDescription1 = signal(true);
   readonly showDescription2 = signal(true);
-  readonly form = form(signal({ name: 'James' }), path => {
+  readonly form = form(signal({ name: 'James', tabIndex: 0 }), path => {
+    resolver(path.tabIndex, Interact, { tabIndex: ctx => ctx.stateOf(path.tabIndex).value() });
+    disabled(path.name, () => true);
     required(path.name, { message: 'Name is required' });
   });
 }

@@ -43,14 +43,17 @@ export class ProtoTooltipArrow {
     return styles;
   });
 
-  #rafId: number | null = null;
-
   constructor() {
-    onDestroy(this.#trigger.setArrow(this));
+    this.#trigger.setArrow(this);
 
+    // Ensure arrow is positioned correctly when the trigger or tooltip changes size
     if (isPlatformBrowser(inject(PLATFORM_ID))) {
-      this.#rafId = requestAnimationFrame(() => this.#calculatePosition());
-      onDestroy(() => this.#rafId !== null && cancelAnimationFrame(this.#rafId));
+      const calc = () => this.#calculatePosition();
+      const ro = new ResizeObserver(calc);
+      ro.observe(this.#trigger.element);
+      ro.observe(this.tooltip.element);
+      onDestroy(() => ro.disconnect());
+      calc();
     }
   }
 
@@ -84,7 +87,5 @@ export class ProtoTooltipArrow {
         this.left.set(`calc(0% - ${this.sizeHalf()})`);
       }
     }
-
-    this.#rafId = requestAnimationFrame(() => this.#calculatePosition());
   }
 }

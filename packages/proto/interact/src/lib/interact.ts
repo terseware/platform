@@ -1,7 +1,6 @@
-import { computed, inject } from '@angular/core';
+import { computed, inject, signal } from '@angular/core';
 import { Resolvable } from '@terseware/proto';
 import {
-  bindable,
   ElementRenderer,
   injectElement,
   isomorphicEffect,
@@ -10,9 +9,9 @@ import {
 
 @Resolvable()
 export class Interact {
-  readonly disabled = bindable(false);
-  readonly focusableWhenDisabled = bindable(false);
-  readonly tabIndex = bindable(0);
+  readonly disabled = signal(false);
+  readonly focusableWhenDisabled = signal(false);
+  readonly tabIndex = signal(0);
 
   readonly hardDisabled = computed(() => this.disabled() && !this.focusableWhenDisabled());
   readonly softDisabled = computed(() => this.disabled() && this.focusableWhenDisabled());

@@ -1,41 +1,51 @@
-import { inject, isDevMode, signal } from '@angular/core';
+import { DOCUMENT, inject, Injectable, isDevMode, signal } from '@angular/core';
 import { Resolvable } from '@terseware/proto';
-import { bindable, ElementRenderer, injectElement, isomorphicEffect } from '@terseware/utils';
+import { ElementRenderer, injectElement, isomorphicEffect } from '@terseware/utils';
 
 // ── Global touch detection ──────────────────────────────────────────────────
 // Tracks whether emulated mouse events should be globally ignored.
 // After a touch event, the flag stays true for 50ms to suppress the emulated
 // mouseenter that iOS fires immediately after a pointerup/touchend.
 
-let _globalIgnoreMouseEvents = false;
-let _touchTimeout: ReturnType<typeof setTimeout> | undefined;
+@Injectable({ providedIn: 'root' })
+class GlobalPointerEvents {
+  #globalIgnoreMouseEvents = false;
+  #touchTimeout: ReturnType<typeof setTimeout> | undefined;
 
-function setIgnoreEmulatedMouseEvents(): void {
-  _globalIgnoreMouseEvents = true;
-  clearTimeout(_touchTimeout);
-  _touchTimeout = setTimeout(() => {
-    _globalIgnoreMouseEvents = false;
-  }, 50);
-}
-
-function onGlobalPointerUp(event: PointerEvent): void {
-  if (event.pointerType === 'touch') {
-    setIgnoreEmulatedMouseEvents();
+  get globalIgnoreMouseEvents(): boolean {
+    return this.#globalIgnoreMouseEvents;
   }
-}
 
-if (typeof document !== 'undefined') {
-  document.addEventListener('pointerup', onGlobalPointerUp, { capture: true, passive: true });
-  document.addEventListener('touchend', setIgnoreEmulatedMouseEvents, {
-    capture: true,
-    passive: true,
-  });
+  constructor() {
+    const doc = inject(DOCUMENT);
+    doc.addEventListener('pointerup', this.#onGlobalPointerUp, { capture: true, passive: true });
+    doc.addEventListener('touchend', this.#ignoreEmulatedMouse, { capture: true, passive: true });
+  }
+
+  #ignoreEmulatedMouse(): void {
+    this.#globalIgnoreMouseEvents = true;
+    clearTimeout(this.#touchTimeout);
+    this.#touchTimeout = setTimeout(() => (this.#globalIgnoreMouseEvents = false), 50);
+  }
+
+  #onGlobalPointerUp(event: PointerEvent): void {
+    if (event.pointerType === 'touch') {
+      this.#ignoreEmulatedMouse();
+    }
+  }
 }
 
 @Resolvable()
 export class Hover {
-  readonly disabled = bindable(false);
-  readonly isHovered = signal(false);
+  readonly #globalPointerEvents = inject(GlobalPointerEvents);
+
+  get globalIgnoreMouseEvents(): boolean {
+    return this.#globalPointerEvents.globalIgnoreMouseEvents;
+  }
+
+  readonly disabled = signal(false);
+  readonly #isHovered = signal(false);
+  readonly isHovered = this.#isHovered.asReadonly();
 
   constructor() {
     const el = injectElement();
@@ -71,7 +81,7 @@ export class Hover {
       return;
     }
 
-    this.isHovered.set(true);
+    this.#isHovered.set(true);
   }
 
   #onHoverFinished(pointerType: string): void {
@@ -79,11 +89,11 @@ export class Hover {
       return;
     }
 
-    this.isHovered.set(false);
+    this.#isHovered.set(false);
   }
 
   #onPointerEnter(event: PointerEvent): void {
-    if (_globalIgnoreMouseEvents && event.pointerType === 'mouse') {
+    if (this.globalIgnoreMouseEvents && event.pointerType === 'mouse') {
       return;
     }
 
@@ -101,7 +111,7 @@ export class Hover {
   }
 
   #onMouseEnter(event: MouseEvent): void {
-    if (!this.#localIgnoreMouseEvents && !_globalIgnoreMouseEvents) {
+    if (!this.#localIgnoreMouseEvents && !this.globalIgnoreMouseEvents) {
       this.#onHoverBegin(event, 'mouse');
     }
 

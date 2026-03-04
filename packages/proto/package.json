@@ -2,13 +2,13 @@
   "name": "@terseware/proto",
   "version": "0.0.1",
   "peerDependencies": {
-    "@angular/core": "^21.1.0",
-    "@angular/common": "^21.2.0",
     "@angular/cdk": "^21.2.0",
-    "rxjs": "~7.8.2",
-    "@terseware/utils": "0.0.1",
+    "@angular/common": "^21.2.0",
+    "@angular/core": "^21.2.0",
     "@angular/forms": "^21.2.0",
-    "ngxtension": "^7.1.0"
+    "@terseware/utils": "0.0.1",
+    "ngxtension": "^7.1.0",
+    "rxjs": "~7.8.2"
   },
   "sideEffects": false
 }
