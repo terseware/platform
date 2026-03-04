@@ -20,16 +20,20 @@ export default [
           allow: ['^.*/eslint(\\.base)?\\.config\\.[cm]?[jt]s$'],
           depConstraints: [
             {
-              sourceTag: 'proto',
+              sourceTag: 'utils',
               onlyDependOnLibsWithTags: [''],
             },
             {
+              sourceTag: 'proto',
+              onlyDependOnLibsWithTags: ['utils'],
+            },
+            {
               sourceTag: 'ui',
-              onlyDependOnLibsWithTags: ['proto'],
+              onlyDependOnLibsWithTags: ['utils', 'proto'],
             },
             {
               sourceTag: 'terseware',
-              onlyDependOnLibsWithTags: ['proto', 'ui'],
+              onlyDependOnLibsWithTags: ['utils', 'proto', 'ui'],
             },
           ],
         },

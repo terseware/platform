@@ -1,6 +1,6 @@
 import { isPlatformBrowser } from '@angular/common';
 import { computed, Directive, inject, input, PLATFORM_ID, signal } from '@angular/core';
-import { isNumber, onDestroy } from '@terseware/proto/internal';
+import { isNumber, onDestroy } from '@terseware/utils';
 import { ProtoTooltip } from './proto-tooltip';
 import { ProtoTooltipTrigger } from './proto-tooltip-trigger';
 
@@ -46,18 +46,12 @@ export class ProtoTooltipArrow {
   #rafId: number | null = null;
 
   constructor() {
-    this.#trigger.arrow.set(this);
+    onDestroy(this.#trigger.setArrow(this));
 
     if (isPlatformBrowser(inject(PLATFORM_ID))) {
       this.#rafId = requestAnimationFrame(() => this.#calculatePosition());
+      onDestroy(() => this.#rafId !== null && cancelAnimationFrame(this.#rafId));
     }
-
-    onDestroy(() => {
-      if (this.#rafId !== null) {
-        cancelAnimationFrame(this.#rafId);
-      }
-      this.#trigger.arrow.set(null);
-    });
   }
 
   #calculatePosition() {

@@ -8,8 +8,8 @@ import {
 } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
 import { deepComputed } from '@ngrx/signals';
-import { uniqueId } from '@terseware/proto/internal';
 import { cn } from '@terseware/ui/utils';
+import { uniqueId } from '@terseware/utils';
 import type { ClassValue } from 'clsx';
 
 export type TerseIconData = {

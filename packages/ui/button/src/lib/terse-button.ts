@@ -4,11 +4,11 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  inject,
   input,
   numberAttribute,
 } from '@angular/core';
 import { lucideLoaderCircle } from '@ng-icons/lucide';
-import { resolve } from '@terseware/proto';
 import { Button } from '@terseware/proto/button';
 import { TerseIcon, toTerseIcon } from '@terseware/ui/icon';
 import { cn } from '@terseware/ui/utils';
@@ -94,13 +94,12 @@ export class TerseButton {
   readonly type = input<string | null>();
 
   constructor() {
-    resolve(Button, {
-      disabled: computed(() => this.disabled() || this.loading()),
-      focusableWhenDisabled: this.loading,
-      tabIndex: this.tabIndex,
-      role: this.role,
-      type: this.type,
-    });
+    const button = inject(Button);
+    button.disabled.set(computed(() => this.disabled() || this.loading()));
+    button.focusableWhenDisabled.set(this.loading);
+    button.tabIndex.set(this.tabIndex);
+    button.role.set(this.role);
+    button.type.set(this.type);
   }
 
   readonly terseButton = input<TerseButtonVariants['variant'] | ''>();

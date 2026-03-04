@@ -33,19 +33,22 @@
     "verbatimModuleSyntax": true,
     "paths": {
       "@terseware/proto": ["packages/proto/src/index.ts"],
-      "@terseware/ui": ["packages/ui/src/index.ts"],
-      "@terseware/ui/utils": ["packages/ui/utils/src/index.ts"],
-      "@terseware/ui/button": ["packages/ui/button/src/index.ts"],
+      "@terseware/proto/anchor": ["packages/proto/anchor/src/index.ts"],
       "@terseware/proto/button": ["packages/proto/button/src/index.ts"],
-      "@terseware/proto/utils": ["packages/proto/utils/src/index.ts"],
+      "@terseware/proto/focus": ["packages/proto/focus/src/index.ts"],
+      "@terseware/proto/hover": ["packages/proto/hover/src/index.ts"],
+      "@terseware/proto/interact": ["packages/proto/interact/src/index.ts"],
+      "@terseware/proto/press": ["packages/proto/press/src/index.ts"],
+      "@terseware/proto/scrolling": ["packages/proto/scrolling/src/index.ts"],
+      "@terseware/proto/tooltip": ["packages/proto/tooltip/src/index.ts"],
+      "@terseware/ui": ["packages/ui/src/index.ts"],
+      "@terseware/ui/button": ["packages/ui/button/src/index.ts"],
       "@terseware/ui/icon": ["packages/ui/icon/src/index.ts"],
       "@terseware/ui/theme": ["packages/ui/theme/src/index.ts"],
-      "@terseware/proto/tooltip": ["packages/proto/tooltip/src/index.ts"],
       "@terseware/ui/tooltip": ["packages/ui/tooltip/src/index.ts"],
-      "@terseware/proto/internal": ["packages/proto/internal/src/index.ts"],
-      "@terseware/proto/interactions": ["packages/proto/interactions/src/index.ts"],
-      "@terseware/proto/anchor": ["packages/proto/anchor/src/index.ts"],
-      "@terseware/proto/scrolling": ["packages/proto/scrolling/src/index.ts"]
+      "@terseware/ui/utils": ["packages/ui/utils/src/index.ts"],
+      "@terseware/utils": ["packages/utils/src/index.ts"],
+      "@terseware/proto/forms": ["packages/proto/forms/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]

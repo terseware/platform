@@ -1,5 +1,5 @@
 import { afterEveryRender, computed, Directive, inject, signal } from '@angular/core';
-import { injectElement, onDestroy, uniqueId } from '@terseware/proto/internal';
+import { injectElement, uniqueId } from '@terseware/utils';
 import type { TooltipSide } from './proto-tooltip-trigger';
 import { ProtoTooltipTrigger } from './proto-tooltip-trigger';
 
@@ -48,8 +48,7 @@ export class ProtoTooltip {
   readonly align = this.#align.asReadonly();
 
   constructor() {
-    this.#trigger.tooltip.set(this);
-    onDestroy(() => this.#trigger.tooltip.set(null));
+    this.#trigger.setTooltip(this);
     afterEveryRender(() => {
       const style = getComputedStyle(this.element) as { positionArea?: TooltipSide };
       this.#align.update(align => style.positionArea ?? align);

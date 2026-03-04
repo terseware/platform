@@ -1,6 +1,5 @@
-import { Directive, input, output } from '@angular/core';
-import { attachBindings, resolve } from '@terseware/proto';
-import { onChange } from '@terseware/proto/internal';
+import { Directive, inject, input, output } from '@angular/core';
+import { onChange } from '@terseware/utils';
 import { Intersect } from './intersect';
 
 @Directive({
@@ -8,7 +7,7 @@ import { Intersect } from './intersect';
   exportAs: 'protoIntersect',
 })
 export class ProtoIntersect {
-  readonly #intersect = resolve(Intersect);
+  readonly #intersect = inject(Intersect);
 
   readonly threshold = input<number | number[]>(this.#intersect.threshold());
   readonly root = input<Element | null>(this.#intersect.root());
@@ -18,11 +17,9 @@ export class ProtoIntersect {
   readonly protoIntersect = output<void>();
 
   constructor() {
-    attachBindings(this.#intersect, {
-      threshold: this.threshold,
-      root: this.root,
-      rootMargin: this.rootMargin,
-    });
+    this.#intersect.threshold.set(this.threshold);
+    this.#intersect.root.set(this.root);
+    this.#intersect.rootMargin.set(this.rootMargin);
 
     onChange(this.#intersect.isIntersecting, () => this.protoIntersect.emit());
   }

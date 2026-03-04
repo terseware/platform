@@ -1,10 +1,14 @@
 import { httpResource } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, signal } from '@angular/core';
+import { form, FormField, FormRoot, required } from '@angular/forms/signals';
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { ProtoButton } from '@terseware/proto/button';
-import { ProtoLazyScrollable } from '@terseware/proto/scrolling';
-import type { TooltipSide } from '@terseware/proto/tooltip';
-import { hostBinding } from '@terseware/proto/utils';
+import {
+  ProtoFieldDescription,
+  ProtoFieldError,
+  ProtoFieldLabel,
+  ProtoFormField,
+} from '@terseware/proto/forms';
 import { TerseIcon, toTerseIcon } from '@terseware/ui/icon';
 import { TerseThemeToggle } from '@terseware/ui/theme';
 
@@ -17,7 +21,12 @@ import { TerseThemeToggle } from '@terseware/ui/theme';
     TerseThemeToggle,
     TerseIcon,
     ProtoButton,
-    ProtoLazyScrollable,
+    FormRoot,
+    FormField,
+    ProtoFieldDescription,
+    ProtoFieldLabel,
+    ProtoFieldError,
+    ProtoFormField,
   ],
   host: { class: 'contents' },
   template: `
@@ -34,23 +43,21 @@ import { TerseThemeToggle } from '@terseware/ui/theme';
       <span class="flex-1"></span>
       <terse-theme-toggle />
     </header>
-    <div
-      #scrollable="protoLazyScrollable"
-      protoLazyScrollable
-      style="min-height: 100px;
-               max-height: 100px;
-               min-width: 100px;
-               max-width: 100px;
-               overflow: auto;"
-    >
-      <div
-        style="min-height: 200px;
-                 max-height: 200px;
-                 min-width: 200px;
-                 max-width: 200px;"
-      ></div>
-    </div>
-    {{ scrollable.lazyScrollTop() }}
+    <form [formRoot]="form">
+      @if (showLabel()) {
+        <label protoFieldLabel [for]="form.name">Name</label>
+      }
+      <input proto [formField]="form.name" />
+      @if (showDescription1()) {
+        <p [protoFieldDescription]="form.name"></p>
+      }
+      @if (showDescription2()) {
+        <p [protoFieldDescription]="form.name"></p>
+      }
+      @for (error of form.name().errors(); track error) {
+        <p [protoFieldError]="error">{{ error.message }}</p>
+      }
+    </form>
     <main>
       <router-outlet />
     </main>
@@ -62,30 +69,10 @@ export class App {
     this.logo.hasValue() ? toTerseIcon('Logo', this.logo.value() as `<svg ${string}`) : null,
   );
 
-  console = console;
-
-  readonly focusableWhenDisabled = signal(true);
-
-  readonly side = signal<TooltipSide>('top');
-
-  constructor() {
-    hostBinding(
-      '(keydown)',
-      event => {
-        if (event.key === 'ArrowUp') {
-          this.side.set('top');
-        }
-        if (event.key === 'ArrowDown') {
-          this.side.set('bottom');
-        }
-        if (event.key === 'ArrowLeft') {
-          this.side.set('left');
-        }
-        if (event.key === 'ArrowRight') {
-          this.side.set('right');
-        }
-      },
-      { document: true },
-    );
-  }
+  readonly showLabel = signal(true);
+  readonly showDescription1 = signal(true);
+  readonly showDescription2 = signal(true);
+  readonly form = form(signal({ name: 'James' }), path => {
+    required(path.name, { message: 'Name is required' });
+  });
 }

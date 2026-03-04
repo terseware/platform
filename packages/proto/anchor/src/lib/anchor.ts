@@ -1,13 +1,16 @@
+import { inject } from '@angular/core';
 import { Resolvable } from '@terseware/proto';
-import { uniqueId } from '@terseware/proto/internal';
-import { hostBinding } from '@terseware/proto/utils';
+import { ElementRenderer, injectElement, uniqueId } from '@terseware/utils';
 
-export type AnchorName = Anchor['name'];
+export type AnchorName = `--${string}`;
 
-@Resolvable({ host: true })
+@Resolvable({ inherit: false })
 export class Anchor {
-  readonly name = `--${uniqueId('anchor')}` as const;
+  readonly name: AnchorName = `--${uniqueId('anchor')}`;
+
   constructor() {
-    hostBinding('style.anchor-name', () => this.name);
+    const el = injectElement();
+    const renderer = inject(ElementRenderer);
+    renderer.setStyle(el, 'anchorName', this.name);
   }
 }

@@ -53,8 +53,8 @@ export default [
         {
           patterns: [
             {
-              regex: '^(?!(@angular|rxjs|@terseware)(/.*)?$)(?!\\.{1,2}/).*',
-              message: 'Only allowed imports: @angular|rxjs|@terseware',
+              regex: '^(?!(@angular|rxjs|ngxtension|@terseware)(/.*)?$)(?!\\.{1,2}/).*',
+              message: 'Only allowed imports: @angular|rxjs|ngxtension|@terseware',
             },
           ],
         },

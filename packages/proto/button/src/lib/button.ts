@@ -1,16 +1,23 @@
-import { Resolvable, resolve } from '@terseware/proto';
-import { Focus, Hover, Interact, Press } from '@terseware/proto/interactions';
+import { inject } from '@angular/core';
+import { Resolvable } from '@terseware/proto';
+import { Focus } from '@terseware/proto/focus';
+import { Hover } from '@terseware/proto/hover';
+import { Interact } from '@terseware/proto/interact';
+import { Press } from '@terseware/proto/press';
 import {
+  bindable,
+  ElementRenderer,
   injectElement,
   isNativeAnchorTag,
   isNativeButtonTag,
   isNativeInputTag,
-} from '@terseware/proto/internal';
-import { bindable, hostBinding } from '@terseware/proto/utils';
+  isomorphicEffect,
+} from '@terseware/utils';
 
 @Resolvable()
 export class Button {
   readonly #element = injectElement();
+  readonly #renderer = inject(ElementRenderer);
 
   get #isNativeButton(): boolean {
     return isNativeButtonTag(this.#element);
@@ -31,55 +38,65 @@ export class Button {
   readonly type = bindable<string | null>(null);
 
   constructor() {
-    const interact = resolve(Interact, {
-      disabled: this.disabled,
-      focusableWhenDisabled: this.focusableWhenDisabled,
-      tabIndex: this.tabIndex,
-    });
+    const interact = inject(Interact);
+    interact.disabled.set(this.disabled);
+    interact.focusableWhenDisabled.set(this.focusableWhenDisabled);
+    interact.tabIndex.set(this.tabIndex);
 
-    resolve(Hover, { disabled: interact.disabled });
-    resolve(Press, { disabled: interact.disabled });
+    inject(Focus).disabled.set(interact.hardDisabled);
+    inject(Hover).disabled.set(interact.disabled);
+    inject(Press).disabled.set(interact.disabled);
 
-    // When focusableWhenDisabled is true, still allow focus interactions
-    resolve(Focus, { disabled: interact.hardDisabled });
-
-    hostBinding('attr.role', () => {
-      const val = this.role();
-      if (val) {
-        return val;
-      }
-      if (this.#isNativeButton || this.#isValidLink || this.#isNativeInput) {
-        return null;
-      }
-      return 'button';
-    });
-
-    hostBinding('attr.type', () => {
-      const val = this.type();
-      if (val) {
-        return val;
-      }
-      if (this.#isNativeButton) {
+    isomorphicEffect({
+      earlyRead: () => {
+        const role = this.role();
+        if (role) {
+          return role;
+        }
+        if (this.#isNativeButton || this.#isValidLink || this.#isNativeInput) {
+          return null;
+        }
         return 'button';
-      }
-      return null;
+      },
+      write: role => this.#renderer.setAttr(this.#element, 'role', role()),
     });
 
-    hostBinding('(click)', event => {
+    isomorphicEffect({
+      earlyRead: () => {
+        const type = this.type();
+        if (type) {
+          return type;
+        }
+        if (this.#isNativeButton) {
+          return 'button';
+        }
+        return null;
+      },
+      write: type => this.#renderer.setAttr(this.#element, 'type', type()),
+    });
+
+    this.#renderer.listen(this.#element, 'click', event => {
       if (this.disabled()) {
         event.preventDefault();
         event.stopImmediatePropagation();
       }
     });
 
-    hostBinding('(mousedown)', event => {
+    this.#renderer.listen(this.#element, 'mousedown', event => {
       if (this.disabled()) {
         event.preventDefault();
         event.stopImmediatePropagation();
       }
     });
 
-    hostBinding('(keydown)', event => {
+    this.#renderer.listen(this.#element, 'pointerdown', event => {
+      if (this.disabled()) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+    });
+
+    this.#renderer.listen(this.#element, 'keydown', event => {
       // Only handle direct events (not bubbled from children) on non-native elements
       const shouldClick =
         event.target === event.currentTarget &&
@@ -104,7 +121,7 @@ export class Button {
       }
     });
 
-    hostBinding('(keyup)', event => {
+    this.#renderer.listen(this.#element, 'keyup', event => {
       if (this.disabled()) {
         event.preventDefault();
         event.stopImmediatePropagation();

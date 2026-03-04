@@ -1,6 +1,6 @@
 import { CdkScrollable } from '@angular/cdk/scrolling';
 import { Directive, inject } from '@angular/core';
-import { toLazySignal } from '@terseware/proto/internal';
+import { toLazySignal } from 'ngxtension/to-lazy-signal';
 import { animationFrameScheduler, auditTime, map } from 'rxjs';
 
 /**

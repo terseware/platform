@@ -1,12 +1,13 @@
-import { afterRenderEffect, signal, untracked } from '@angular/core';
+import { afterRenderEffect, inject, signal, untracked } from '@angular/core';
 import { Resolvable } from '@terseware/proto';
-import { injectElement } from '@terseware/proto/internal';
-import { bindable, hostBinding } from '@terseware/proto/utils';
+import { bindable, ElementRenderer, injectElement, isomorphicEffect } from '@terseware/utils';
 
-@Resolvable({ self: true })
+@Resolvable()
 export class Intersect {
   readonly #element = injectElement();
+  readonly #renderer = inject(ElementRenderer);
 
+  readonly disabled = bindable(false);
   readonly threshold = bindable<number | number[]>(0);
   readonly root = bindable<Element | null>(null);
   readonly rootMargin = bindable<string>('0px');
@@ -14,9 +15,17 @@ export class Intersect {
   readonly isIntersecting = signal(false);
 
   constructor() {
-    hostBinding('attr.data-intersecting', () => (this.isIntersecting() ? '' : null));
+    isomorphicEffect({
+      earlyRead: () => !this.disabled() && this.isIntersecting(),
+      write: intersecting =>
+        this.#renderer.setAttr(this.#element, 'data-intersecting', intersecting() ? '' : null),
+    });
 
     afterRenderEffect(onCleanup => {
+      if (this.disabled()) {
+        return;
+      }
+
       const options: IntersectionObserverInit = {
         threshold: this.threshold(),
         root: this.root(),
