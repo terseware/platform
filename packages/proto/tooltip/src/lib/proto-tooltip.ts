@@ -1,5 +1,5 @@
 import { afterEveryRender, computed, Directive, inject, signal } from '@angular/core';
-import { injectElement, uniqueId } from '@terseware/utils';
+import { ElementRenderer, injectElement } from '@terseware/utils';
 import type { TooltipSide } from './proto-tooltip-trigger';
 import { ProtoTooltipTrigger } from './proto-tooltip-trigger';
 
@@ -23,8 +23,8 @@ import { ProtoTooltipTrigger } from './proto-tooltip-trigger';
 export class ProtoTooltip {
   readonly element = injectElement();
   readonly #trigger = inject(ProtoTooltipTrigger);
-
-  readonly id = uniqueId('tooltip');
+  readonly #renderer = inject(ElementRenderer);
+  readonly id = this.#renderer.id(this.element, 'tooltip');
   readonly anchorName = `${this.#trigger.anchorName}-${this.id}` as const;
   readonly gap = this.#trigger.gap;
   readonly side = this.#trigger.tooltipSide;

@@ -17,14 +17,14 @@ export function Resolvable(options?: {
    * Whether to inherit the resolvable instance from the parent injector.
    * - `true`: Resolve the instance from the host or any parent.
    * - `false`: Resolve the instance from the host only.
-   * @default true
+   * @default false
    */
   inherit?: boolean;
 }): TypeDecorator {
   return function (base: any) {
     const type = class Wrapper extends base {
       constructor() {
-        const inherit = options?.inherit ?? true;
+        const inherit = options?.inherit ?? false;
         const existing = inject(type, { optional: true, host: !inherit });
         if (existing) {
           return existing;

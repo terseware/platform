@@ -9,7 +9,7 @@ import {
 import { DomSanitizer } from '@angular/platform-browser';
 import { deepComputed } from '@ngrx/signals';
 import { cn } from '@terseware/ui/utils';
-import { uniqueId } from '@terseware/utils';
+import { ElementRenderer, injectElement } from '@terseware/utils';
 import type { ClassValue } from 'clsx';
 
 export type TerseIconData = {
@@ -43,8 +43,9 @@ export function toTerseIcon(name: string, svg: `<svg ${string}`): TerseIconData 
 })
 export class TerseIcon {
   private readonly sanitizer = inject(DomSanitizer);
-
-  readonly id = uniqueId('terse-icon');
+  readonly element = injectElement();
+  readonly #renderer = inject(ElementRenderer);
+  readonly id = this.#renderer.id(this.element, 'terse-icon');
 
   readonly terseIcon = input.required<TerseIconData>();
   protected readonly data = deepComputed(() => this.terseIcon());

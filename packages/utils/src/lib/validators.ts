@@ -138,9 +138,18 @@ export function isNativeAnchorTag<const E extends Element>(
  * Type guard for elements supporting the native `disabled` attribute.
  * @see {@link https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/disabled | MDN: disabled attribute}
  */
-
 export function supportsDisabledAttribute<const E extends Element>(
   element: E,
 ): element is E & { disabled: boolean } {
   return element instanceof HTMLElement && 'disabled' in element;
+}
+
+/**
+ * Type guard for elements supporting the native `required` attribute.
+ * @see {@link https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/required | MDN: required attribute}
+ */
+export function supportsRequiredAttribute<const E extends Element>(
+  element: E,
+): element is E & { required: boolean } {
+  return element instanceof HTMLElement && 'required' in element;
 }

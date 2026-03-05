@@ -1,16 +1,33 @@
-import { computed, Directive, effect, inject, input, runInInjectionContext } from '@angular/core';
+import {
+  computed,
+  Directive,
+  effect,
+  inject,
+  InjectionToken,
+  input,
+  runInInjectionContext,
+} from '@angular/core';
 import type { FieldState, ValidationError } from '@angular/forms/signals';
-import { scoped, uniqueId } from '@terseware/utils';
-import { ProtoFieldContext } from './field-context';
-import type { ProtoFieldErrorStrategy } from './form-di';
-import { PROTO_FIELD_ERROR_STRATEGY } from './form-di';
+import { ElementRenderer, injectElement, isString, scoped } from '@terseware/utils';
+import { FieldResolver } from './field-resolver';
+
+export type ProtoFieldErrorStrategy<T> =
+  | 'onSubmit'
+  | 'onBlur'
+  | 'onChange'
+  | ((state: FieldState<T, string | number>) => boolean);
+
+export const PROTO_FIELD_ERROR_STRATEGY = new InjectionToken<ProtoFieldErrorStrategy<unknown>>(
+  'PROTO_FIELD_ERROR_STRATEGY',
+  { factory: () => 'onSubmit' },
+);
 
 @Directive({
   selector: '[protoFieldError]',
   exportAs: 'protoFieldError',
   host: {
     '[id]': 'id',
-    role: 'alert',
+    'aria-atomic': 'true',
     'aria-live': 'polite',
     '[attr.aria-hidden]': '!visible() || null',
     '[attr.data-errors-visible]': "visible() ? '' : null",
@@ -18,7 +35,9 @@ import { PROTO_FIELD_ERROR_STRATEGY } from './form-di';
   },
 })
 export class ProtoFieldError<T> {
-  readonly id = uniqueId('field-error');
+  readonly element = injectElement();
+  readonly #renderer = inject(ElementRenderer);
+  readonly id = this.#renderer.id(this.element, 'field-error');
 
   readonly error = input.required<ValidationError.WithFieldTree>({
     alias: 'protoFieldError',
@@ -28,12 +47,37 @@ export class ProtoFieldError<T> {
   readonly errorStrategy = input<ProtoFieldErrorStrategy<T>>(inject(PROTO_FIELD_ERROR_STRATEGY), {
     alias: 'protoErrorStrategy',
   });
-  readonly visible = computed(() => this.errorStrategy()(this.state()));
+
+  readonly triedSubmitting = computed(() => {
+    for (const field of this.error().fieldTree().formFieldBindings()) {
+      const context = runInInjectionContext(field.injector, () => inject(FieldResolver<T>));
+      if (context.triedSubmitting()) {
+        return true;
+      }
+    }
+    return false;
+  });
+
+  readonly visible = computed(() => {
+    const strategy = this.errorStrategy();
+    if (isString(strategy)) {
+      switch (strategy) {
+        case 'onBlur':
+          return this.state().touched();
+        case 'onChange':
+          return this.state().dirty();
+        default:
+          return this.triedSubmitting();
+      }
+    } else {
+      return strategy(this.state());
+    }
+  });
 
   constructor() {
     effect(() => {
       for (const field of this.error().fieldTree().formFieldBindings()) {
-        const context = runInInjectionContext(field.injector, () => inject(ProtoFieldContext<T>));
+        const context = runInInjectionContext(field.injector, () => inject(FieldResolver<T>));
         scoped(() => context.addError(this));
       }
     });

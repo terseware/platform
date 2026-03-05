@@ -7,6 +7,7 @@ export * from './lib/isomorphic';
 export * from './lib/scoped';
 export * from './lib/signal-helpers';
 export * from './lib/signal-weak-map';
+export * from './lib/signal-weak-set';
 export * from './lib/types';
 export * from './lib/unique-id';
 export * from './lib/unwrap';

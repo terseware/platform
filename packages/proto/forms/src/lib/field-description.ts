@@ -1,7 +1,7 @@
 import { Directive, effect, inject, input, runInInjectionContext } from '@angular/core';
 import type { FieldTree } from '@angular/forms/signals';
-import { scoped, uniqueId } from '@terseware/utils';
-import { ProtoFieldContext } from './field-context';
+import { ElementRenderer, injectElement, scoped } from '@terseware/utils';
+import { FieldResolver } from './field-resolver';
 
 @Directive({
   selector: '[protoFieldDescription]',
@@ -11,7 +11,9 @@ import { ProtoFieldContext } from './field-context';
   },
 })
 export class ProtoFieldDescription<T> {
-  readonly id = uniqueId('field-description');
+  readonly element = injectElement();
+  readonly #renderer = inject(ElementRenderer);
+  readonly id = this.#renderer.id(this.element, 'field-description');
 
   readonly field = input.required<FieldTree<T, string | number>>({
     alias: 'protoFieldDescription',
@@ -20,7 +22,7 @@ export class ProtoFieldDescription<T> {
   constructor() {
     effect(() => {
       for (const field of this.field()().formFieldBindings()) {
-        const context = runInInjectionContext(field.injector, () => inject(ProtoFieldContext<T>));
+        const context = runInInjectionContext(field.injector, () => inject(FieldResolver<T>));
         scoped(() => context.addDescription(this));
       }
     });

@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 import type { FieldTree } from '@angular/forms/signals';
 import { ElementRenderer, injectElement, scoped } from '@terseware/utils';
-import { ProtoFieldContext } from './field-context';
+import { FieldResolver } from './field-resolver';
 
 @Directive({
   selector: '[protoFieldLabel]',
@@ -21,13 +21,13 @@ import { ProtoFieldContext } from './field-context';
   },
 })
 export class ProtoFieldLabel<T> {
-  readonly #element = injectElement();
+  readonly element = injectElement();
   readonly #renderer = inject(ElementRenderer);
   readonly isNativeLabel = inject(HOST_TAG_NAME).toLowerCase() === 'label';
 
   readonly field = input.required<FieldTree<T, string | number>>({ alias: 'for' });
 
-  readonly id = this.#renderer.id(this.#element, 'field-label');
+  readonly id = this.#renderer.id(this.element, 'field-label');
   readonly #for = signal<string | null>(null);
   readonly for = this.#for.asReadonly();
 
@@ -47,7 +47,7 @@ export class ProtoFieldLabel<T> {
         });
       }
 
-      const context = runInInjectionContext(field.injector, () => inject(ProtoFieldContext<T>));
+      const context = runInInjectionContext(field.injector, () => inject(FieldResolver<T>));
       scoped(() => context.addLabel(this));
       this.isNativeLabel && this.#for.set(context.id);
     });

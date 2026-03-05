@@ -1,13 +1,14 @@
+import type { Injector } from '@angular/core';
 import {
   computed,
+  DOCUMENT,
   effect,
   inject,
-  Injector,
-  isWritableSignal,
+  InjectionToken,
   runInInjectionContext,
   untracked,
 } from '@angular/core';
-import type { FormField } from '@angular/forms/signals';
+import type { FieldState, FieldTree, FormField } from '@angular/forms/signals';
 import { FORM_FIELD } from '@angular/forms/signals';
 import { Resolvable } from '@terseware/proto';
 import { Focus } from '@terseware/proto/focus';
@@ -17,9 +18,12 @@ import { Press } from '@terseware/proto/press';
 import {
   disposable,
   ElementRenderer,
+  isNil,
   isomorphicEffect,
   scoped,
   signalBind,
+  SignalWeakSet,
+  supportsRequiredAttribute,
   unorderedComparator,
 } from '@terseware/utils';
 import { SignalSet } from 'ngxtension/collections';
@@ -27,15 +31,27 @@ import type { ProtoFieldDescription } from './field-description';
 import type { ProtoFieldError } from './field-error';
 import type { ProtoFieldLabel } from './field-label';
 import { RESOLVER } from './field-metadata';
-import { installFieldDataAttributes } from './form-di';
+
+const triedSubmittingSet = new InjectionToken(
+  'triedSubmittingSet',
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  { factory: () => new SignalWeakSet<FieldState<any, string | number>>() },
+);
 
 @Resolvable()
-export class ProtoFieldContext<T> {
-  readonly #injector = inject(Injector);
+export class FieldResolver<T> {
   readonly #renderer = inject(ElementRenderer);
   readonly #field = inject<FormField<T>>(FORM_FIELD);
+  readonly #triedSubmittingSet = inject(triedSubmittingSet);
   readonly id = this.#renderer.id(this.#field.element, 'field');
   readonly state = this.#field.state;
+  readonly element = this.#field.element;
+
+  readonly formRootState = computed(() => {
+    // A bit of a hack to get the root field from the first found field directive.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return ((this.#field.state() as any).structure.root.fieldProxy as FieldTree<T>)();
+  });
 
   readonly #labels = new SignalSet<ProtoFieldLabel<T>>();
   addLabel(label: ProtoFieldLabel<T>, injector?: Injector | null | undefined): () => void {
@@ -68,29 +84,73 @@ export class ProtoFieldContext<T> {
     [...this.#errors.values()].some(error => error.visible()),
   );
 
+  readonly triedSubmitting = computed(() => {
+    const formRootState = this.formRootState();
+    return formRootState ? this.#triedSubmittingSet.has(formRootState) : false;
+  });
+
+  readonly dataAttributes: Record<string, (state: FieldState<T>) => boolean> = {
+    'data-dirty': state => state.dirty(),
+    'data-filled': state => !isNil(state.value()) && state.value() !== '',
+    'data-invalid': state => state.invalid(),
+    'data-pending': state => state.pending(),
+    'data-pristine': state => !state.dirty(),
+    'data-readonly': state => state.readonly(),
+    'data-required': state => state.required(),
+    'data-touched': state => state.touched(),
+    'data-valid': state => state.valid(),
+  };
+
   constructor() {
+    const el = this.#field.element;
+    const r = this.#renderer;
+
+    this.#renderer.listen(
+      inject(DOCUMENT),
+      'submit',
+      evt => {
+        const triedSubmit = (evt.target as Node).contains(this.element);
+        if (triedSubmit) {
+          this.#triedSubmittingSet.add(this.formRootState());
+        }
+      },
+      { capture: true },
+    );
+
     const interact = inject(Interact, { host: true });
     signalBind(interact.disabled, () => this.state().disabled());
-
     signalBind(inject(Hover).disabled, interact.disabled);
     signalBind(inject(Press).disabled, interact.disabled);
     signalBind(inject(Focus).disabled, interact.hardDisabled); // Allow focus when focusable when disabled is true
 
-    const el = this.#field.element;
-    const r = this.#renderer;
+    for (const [attribute, condition] of Object.entries(this.dataAttributes)) {
+      isomorphicEffect({
+        write: () => {
+          for (const element of [
+            el,
+            ...[...this.#descriptions.values()].map(d => d.element),
+            ...[...this.#errors.values()].map(e => e.element),
+            ...[...this.#labels.values()].map(l => l.element),
+          ]) {
+            r.setAttr(element, attribute, condition(this.state()) ? '' : null);
+          }
+        },
+      });
+    }
 
     isomorphicEffect({
       write: () => r.setAttr(el, 'aria-invalid', this.errorsVisible() ? 'true' : null),
     });
 
-    installFieldDataAttributes(this.#field.element, () => this.#field.field()());
     isomorphicEffect({
       write: () => r.setAttr(el, 'data-errors-visible', this.errorsVisible() ? '' : null),
     });
 
-    isomorphicEffect({
-      write: () => r.setAttr(el, 'aria-required', this.state().required() ? 'true' : null),
-    });
+    if (!supportsRequiredAttribute(el)) {
+      isomorphicEffect({
+        write: () => r.setAttr(el, 'aria-required', this.state().required() ? 'true' : null),
+      });
+    }
 
     isomorphicEffect({
       earlyRead: computed(() => [...this.#labels.values()].map(label => label.id), {
@@ -117,31 +177,23 @@ export class ProtoFieldContext<T> {
   }
 
   #installResolver() {
-    effect(onCleanup => {
+    effect(() => {
       const resolversMeta = this.state().metadata(RESOLVER);
-      if (!resolversMeta) return;
+      if (!resolversMeta) {
+        return;
+      }
 
       const list = untracked(resolversMeta);
-      if (!list?.length) return;
+      if (!list?.length) {
+        return;
+      }
 
-      const bindings: { destroy(): void }[] = [];
-      untracked(() => {
-        for (const entry of list) {
-          if (!entry) continue;
-          const instance = runInInjectionContext(this.#injector, () =>
-            inject(entry.type, entry.opts),
-          );
-          for (const [key, memoKey] of Object.entries(entry.propMemos)) {
-            const memo = this.state().metadata(memoKey);
-            if (!memo) continue;
-            const sig = (instance as Record<string, unknown>)[key];
-            if (isWritableSignal(sig)) {
-              bindings.push(signalBind(sig, memo, { injector: this.#injector }));
-            }
-          }
+      for (const entry of list) {
+        for (const field of entry.ctx.state.formFieldBindings()) {
+          const instance = runInInjectionContext(field.injector, () => inject(entry.type));
+          entry.handler(instance);
         }
-      });
-      onCleanup(() => bindings.forEach(b => b.destroy()));
+      }
     });
   }
 }

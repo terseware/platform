@@ -4,7 +4,7 @@ import { ElementRenderer, injectElement, uniqueId } from '@terseware/utils';
 
 export type AnchorName = `--${string}`;
 
-@Resolvable({ inherit: false })
+@Resolvable()
 export class Anchor {
   readonly name: AnchorName = `--${uniqueId('anchor')}`;
 

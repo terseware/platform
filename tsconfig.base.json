@@ -48,7 +48,8 @@
       "@terseware/ui/tooltip": ["packages/ui/tooltip/src/index.ts"],
       "@terseware/ui/utils": ["packages/ui/utils/src/index.ts"],
       "@terseware/utils": ["packages/utils/src/index.ts"],
-      "@terseware/proto/forms": ["packages/proto/forms/src/index.ts"]
+      "@terseware/proto/forms": ["packages/proto/forms/src/index.ts"],
+      "@terseware/proto/menu": ["packages/proto/menu/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]
