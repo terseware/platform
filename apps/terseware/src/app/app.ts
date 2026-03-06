@@ -5,10 +5,10 @@ import { RouterLink, RouterOutlet } from '@angular/router';
 import { ProtoButton } from '@terseware/proto/button';
 import {
   FormCtx,
+  ProtoField,
   ProtoFieldDescription,
   ProtoFieldError,
   ProtoFieldLabel,
-  ProtoFormField,
   resolver,
 } from '@terseware/proto/forms';
 import { Interact } from '@terseware/proto/interact';
@@ -26,7 +26,7 @@ import { TerseThemeToggle } from '@terseware/ui/theme';
     ProtoFieldDescription,
     ProtoFieldError,
     ProtoFieldLabel,
-    ProtoFormField,
+    ProtoField,
     RouterLink,
     RouterOutlet,
     TerseIcon,
@@ -52,8 +52,8 @@ import { TerseThemeToggle } from '@terseware/ui/theme';
     <form [formRoot]="form">
       @if (show()) {
         <label protoFieldLabel [for]="form.name">Name</label>
-        <input proto [formField]="form.name" />
-        <input proto type="number" [formField]="form.tabIndex" />
+        <input protoField [formField]="form.name" />
+        <input protoField type="number" [formField]="form.tabIndex" />
         <p [protoFieldDescription]="form.name"></p>
         <p [protoFieldDescription]="form.name"></p>
         @for (error of form.name().errors(); track error) {

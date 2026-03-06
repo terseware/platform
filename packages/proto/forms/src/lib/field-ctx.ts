@@ -1,5 +1,5 @@
 import type { Injector } from '@angular/core';
-import { computed, effect, inject, runInInjectionContext, untracked } from '@angular/core';
+import { computed, effect, inject, runInInjectionContext, signal, untracked } from '@angular/core';
 import type { FormField } from '@angular/forms/signals';
 import { FORM_FIELD } from '@angular/forms/signals';
 import { Resolvable } from '@terseware/proto';
@@ -17,21 +17,27 @@ import {
   unorderedComparator,
 } from '@terseware/utils';
 import { SignalSet } from 'ngxtension/collections';
-import type { ProtoFieldDescription } from './field-description';
-import type { ProtoFieldError } from './field-error';
-import type { ProtoFieldLabel } from './field-label';
-import { RESOLVER } from './field-metadata';
 import { FormCtx } from './form-ctx';
+import {
+  installFieldDataAttributes,
+  installFieldErrorDataAttributes,
+  PROTO_FIELD_ERROR_STRATEGY,
+  shouldFieldErrorsBeVisible,
+} from './forms-di';
+import { RESOLVER } from './forms-resolver';
+import type { ProtoFieldDescription } from './proto-field-description';
+import type { ProtoFieldError } from './proto-field-error';
+import type { ProtoFieldLabel } from './proto-field-label';
 
 @Resolvable({ ref: FORM_FIELD })
 export class FieldCtx<T> {
-  readonly #formCtx = inject(FormCtx<T>);
   readonly #renderer = inject(ElementRenderer);
   readonly #field = inject<FormField<T>>(FORM_FIELD);
   readonly #element = this.#field.element;
 
   readonly id = this.#renderer.id(this.#field.element, 'field');
   readonly state = this.#field.state;
+  readonly errorStrategy = signal(inject(PROTO_FIELD_ERROR_STRATEGY));
 
   readonly #labels = new SignalSet<ProtoFieldLabel<T>>();
   addLabel(label: ProtoFieldLabel<T>, injector?: Injector | null | undefined): () => void {
@@ -61,42 +67,39 @@ export class FieldCtx<T> {
   }
 
   readonly errorsVisible = computed(() =>
-    [...this.#errors.values()].some(error => error.visible()),
+    shouldFieldErrorsBeVisible(this.errorStrategy(), this.state(), this.formCtx()),
   );
 
-  readonly triedSubmitting = computed(() => this.#formCtx.triedSubmitting());
+  readonly formCtx = computed(() =>
+    runInInjectionContext(this.#field.injector, () => inject(FormCtx<T>)),
+  );
+  readonly triedSubmitting = computed(() => this.formCtx().triedSubmitting());
 
   constructor() {
-    this.#formCtx.addFieldCtx(this);
-
-    const el = this.#field.element;
-    const r = this.#renderer;
-
     const interact = inject(Interact, { host: true });
     signalBind(interact.disabled, () => this.state().disabled());
     signalBind(inject(Hover).disabled, interact.disabled);
     signalBind(inject(Press).disabled, interact.disabled);
     signalBind(inject(Focus).disabled, interact.hardDisabled); // Allow focus when focusable when disabled is true
 
-    for (const [attribute, condition] of Object.entries(this.#formCtx.dataAttributes)) {
-      isomorphicEffect({
-        write: () => {
-          this.#renderer.setAttr(this.#element, attribute, condition(this.state()) ? '' : null);
-        },
-      });
-    }
+    effect(() => scoped(() => this.formCtx().addFieldCtx(this)));
+
+    installFieldDataAttributes(() => this.state());
+    installFieldErrorDataAttributes(() => this);
 
     isomorphicEffect({
-      write: () => r.setAttr(el, 'aria-invalid', this.errorsVisible() ? 'true' : null),
+      write: () =>
+        this.#renderer.setAttr(this.#element, 'aria-invalid', this.errorsVisible() ? 'true' : null),
     });
 
-    isomorphicEffect({
-      write: () => r.setAttr(el, 'data-errors-visible', this.errorsVisible() ? '' : null),
-    });
-
-    if (!supportsRequiredAttribute(el)) {
+    if (!supportsRequiredAttribute(this.#element)) {
       isomorphicEffect({
-        write: () => r.setAttr(el, 'aria-required', this.state().required() ? 'true' : null),
+        write: () =>
+          this.#renderer.setAttr(
+            this.#element,
+            'aria-required',
+            this.state().required() ? 'true' : null,
+          ),
       });
     }
 
@@ -106,7 +109,7 @@ export class FieldCtx<T> {
       }),
       write: idsSource => {
         const ids = idsSource();
-        scoped(() => r.addAttr(el, 'aria-labelledby', ids));
+        scoped(() => this.#renderer.addAttr(this.#element, 'aria-labelledby', ids));
       },
     });
 
@@ -117,7 +120,7 @@ export class FieldCtx<T> {
       ),
       write: idsSource => {
         const ids = idsSource();
-        scoped(() => r.addAttr(el, 'aria-describedby', ids));
+        scoped(() => this.#renderer.addAttr(this.#element, 'aria-describedby', ids));
       },
     });
 

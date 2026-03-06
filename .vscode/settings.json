@@ -1,9 +1,9 @@
 {
   "eslint.validate": ["json", "javascript", "typescript", "html"],
   "eslint.workingDirectories": [{ "pattern": "./apps/*/" }, { "pattern": "./packages/*/" }],
-  "tailwindCSS.classFunctions": ["clsx", "cva", "cx", "cn"],
+  "tailwindCSS.classFunctions": ["clsx", "cva", "cx", "cn", "classes"],
   "tailwindCSS.experimental.classRegex": [
-    "(?:class|className)\\s*[=:]\\s*['\"`]([^'\"`]*)['\"`]",
-    "(?:cva|cn|cx|clsx)\\s*\\([^)]*['\"`]([^'\"`]*)['\"`]"
+    "(?:class|className|classes)\\s*[=:]\\s*['\"`]([^'\"`]*)['\"`]",
+    "(?:cva|cn|cx|clsx|classes)\\s*\\([^)]*['\"`]([^'\"`]*)['\"`]"
   ]
 }

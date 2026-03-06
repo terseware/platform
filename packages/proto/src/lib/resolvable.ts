@@ -68,7 +68,13 @@ export function Resolvable({
           while (injTraverse && !seen.has(injTraverse)) {
             seen.add(injTraverse);
 
-            const ref = runInInjectionContext(injTraverse, () => getReference(referenceFn));
+            const ref = runInInjectionContext(injTraverse, () => {
+              try {
+                return getReference(referenceFn);
+              } catch {
+                return null;
+              }
+            });
             if (ref) {
               const map = getInstanceMap<R>(ref);
               if (map.has(R)) {
@@ -85,6 +91,10 @@ export function Resolvable({
             const parent = injTraverse.get(Injector, null, parentOpts) as Injector | null;
             injTraverse = parent === injTraverse ? null : parent;
           }
+
+          // if (base.name.includes('FormCtx')) {
+          //   debugger;
+          // }
 
           // SkipSelf-only injection: never create, only look up.
           if (skipSelf) {
@@ -128,11 +138,7 @@ export function Resolvable({
 }
 
 function getReference(refFn: NonNullable<ResolvableOptions['ref']>): object | null {
-  try {
-    return isClass(refFn) ? inject(refFn) : isFunction(refFn) ? refFn() : inject(refFn);
-  } catch {
-    return null;
-  }
+  return isClass(refFn) ? inject(refFn) : isFunction(refFn) ? refFn() : inject(refFn);
 }
 
 const RESOLVABLE_INSTANCE_CACHE = new InjectionToken('RESOLVABLE_INSTANCE_CACHE', {

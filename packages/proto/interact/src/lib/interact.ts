@@ -7,8 +7,12 @@ import {
   supportsDisabledAttribute,
 } from '@terseware/utils';
 
-@Resolvable()
+@Resolvable({ inherit: true })
 export class Interact {
+  readonly #element = injectElement();
+  readonly #renderer = inject(ElementRenderer);
+  readonly #nativeDisabled = supportsDisabledAttribute(this.#element);
+
   readonly disabled = signal(false);
   readonly focusableWhenDisabled = signal(false);
   readonly tabIndex = signal(0);
@@ -17,49 +21,52 @@ export class Interact {
   readonly softDisabled = computed(() => this.disabled() && this.focusableWhenDisabled());
 
   constructor() {
-    const el = injectElement();
-    const nativeDisabled = supportsDisabledAttribute(el);
-    const renderer = inject(ElementRenderer);
-
     isomorphicEffect({
-      write: () => renderer.setAttr(el, 'data-disabled', this.disabled() ? '' : null),
+      write: () =>
+        this.#renderer.setAttr(this.#element, 'data-disabled', this.disabled() ? '' : null),
     });
 
     isomorphicEffect({
-      write: () => renderer.setAttr(el, 'data-disabled-focusable', this.softDisabled() ? '' : null),
+      write: () =>
+        this.#renderer.setAttr(
+          this.#element,
+          'data-disabled-focusable',
+          this.softDisabled() ? '' : null,
+        ),
     });
 
-    if (nativeDisabled) {
+    if (this.#nativeDisabled) {
       isomorphicEffect({
-        write: () => renderer.prop(el, 'disabled', this.hardDisabled()),
+        write: () =>
+          this.#renderer.setAttr(this.#element, 'disabled', this.hardDisabled() ? '' : null),
       });
     }
 
     isomorphicEffect({
       earlyRead: () => {
         let tabIndex = this.tabIndex();
-        if (!nativeDisabled && this.disabled()) {
+        if (!this.#nativeDisabled && this.disabled()) {
           tabIndex = this.focusableWhenDisabled() ? tabIndex : -1;
         }
         return `${tabIndex}`;
       },
-      write: tabIndex => renderer.setAttr(el, 'tabindex', tabIndex()),
+      write: tabIndex => this.#renderer.setAttr(this.#element, 'tabindex', tabIndex()),
     });
 
     isomorphicEffect({
       earlyRead: () => {
         if (
-          (nativeDisabled && this.focusableWhenDisabled()) ||
-          (!nativeDisabled && this.disabled())
+          (this.#nativeDisabled && this.focusableWhenDisabled()) ||
+          (!this.#nativeDisabled && this.disabled())
         ) {
           return `${this.disabled()}`;
         }
         return null;
       },
-      write: ariaDisabled => renderer.setAttr(el, 'aria-disabled', ariaDisabled()),
+      write: ariaDisabled => this.#renderer.setAttr(this.#element, 'aria-disabled', ariaDisabled()),
     });
 
-    renderer.listen(el, 'keydown', event => {
+    this.#renderer.listen(this.#element, 'keydown', event => {
       if (this.disabled()) {
         if (event.key !== 'Tab') {
           event.preventDefault();

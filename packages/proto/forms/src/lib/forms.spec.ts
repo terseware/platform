@@ -4,11 +4,12 @@ import { form, FormField, FormRoot, required } from '@angular/forms/signals';
 import { By } from '@angular/platform-browser';
 import { Interact } from '@terseware/proto/interact';
 import { fireEvent, render } from '@testing-library/angular';
-import { ProtoFieldDescription } from './field-description';
-import { PROTO_FIELD_ERROR_STRATEGY, ProtoFieldError } from './field-error';
-import { ProtoFieldLabel } from './field-label';
-import { resolver } from './field-metadata';
-import { ProtoFormField } from './form-field';
+import { PROTO_FIELD_ERROR_STRATEGY } from './forms-di';
+import { resolver } from './forms-resolver';
+import { ProtoField } from './proto-field';
+import { ProtoFieldDescription } from './proto-field-description';
+import { ProtoFieldError } from './proto-field-error';
+import { ProtoFieldLabel } from './proto-field-label';
 
 const noopSubmission = { submission: { action: async () => null } };
 
@@ -17,13 +18,13 @@ describe('Forms', () => {
     @Component({
       selector: 'test-label',
       changeDetection: ChangeDetectionStrategy.OnPush,
-      imports: [FormRoot, FormField, ProtoFieldLabel, ProtoFormField],
+      imports: [FormRoot, FormField, ProtoFieldLabel, ProtoField],
       template: `
         <form [formRoot]="form">
           @if (showLabel()) {
             <label protoFieldLabel [for]="form.name">Name</label>
           }
-          <input proto [formField]="form.name" />
+          <input protoField [formField]="form.name" />
         </form>
       `,
     })
@@ -68,21 +69,21 @@ describe('Forms', () => {
 
       const label = fixture.debugElement.query(By.directive(ProtoFieldLabel));
       const protoFormField = fixture.debugElement
-        .query(By.directive(ProtoFormField))
-        .injector.get(ProtoFormField);
+        .query(By.directive(ProtoField))
+        .injector.get(ProtoField);
 
-      expect(label.nativeElement).toHaveAttribute('for', protoFormField.context.id);
+      expect(label.nativeElement).toHaveAttribute('for', protoFormField.ctx.id);
     });
 
     it('should not set the for attribute on non-native label elements', async () => {
       @Component({
         selector: 'test-span-label',
         changeDetection: ChangeDetectionStrategy.OnPush,
-        imports: [FormRoot, FormField, ProtoFieldLabel, ProtoFormField],
+        imports: [FormRoot, FormField, ProtoFieldLabel, ProtoField],
         template: `
           <form [formRoot]="form">
             <span protoFieldLabel [for]="form.name">Name</span>
-            <input proto [formField]="form.name" />
+            <input protoField [formField]="form.name" />
           </form>
         `,
       })
@@ -99,12 +100,12 @@ describe('Forms', () => {
       @Component({
         selector: 'test-multi-label',
         changeDetection: ChangeDetectionStrategy.OnPush,
-        imports: [FormRoot, FormField, ProtoFieldLabel, ProtoFormField],
+        imports: [FormRoot, FormField, ProtoFieldLabel, ProtoField],
         template: `
           <form [formRoot]="form">
             <label protoFieldLabel [for]="form.name">Name</label>
             <span protoFieldLabel [for]="form.name">Required</span>
-            <input proto [formField]="form.name" />
+            <input protoField [formField]="form.name" />
           </form>
         `,
       })
@@ -129,10 +130,10 @@ describe('Forms', () => {
     @Component({
       selector: 'test-description',
       changeDetection: ChangeDetectionStrategy.OnPush,
-      imports: [FormRoot, FormField, ProtoFieldDescription, ProtoFormField],
+      imports: [FormRoot, FormField, ProtoFieldDescription, ProtoField],
       template: `
         <form [formRoot]="form">
-          <input proto [formField]="form.name" />
+          <input protoField [formField]="form.name" />
           @if (showDescription1()) {
             <p [protoFieldDescription]="form.name">Help text 1</p>
           }
@@ -205,10 +206,10 @@ describe('Forms', () => {
       @Component({
         selector: 'test-multi-desc',
         changeDetection: ChangeDetectionStrategy.OnPush,
-        imports: [FormRoot, FormField, ProtoFieldDescription, ProtoFormField],
+        imports: [FormRoot, FormField, ProtoFieldDescription, ProtoField],
         template: `
           <form [formRoot]="form">
-            <input proto [formField]="form.name" />
+            <input protoField [formField]="form.name" />
             <p [protoFieldDescription]="form.name">Hint 1</p>
             <p [protoFieldDescription]="form.name">Hint 2</p>
           </form>
@@ -235,10 +236,10 @@ describe('Forms', () => {
     @Component({
       selector: 'test-error',
       changeDetection: ChangeDetectionStrategy.OnPush,
-      imports: [FormRoot, FormField, ProtoFieldError, ProtoFormField],
+      imports: [FormRoot, FormField, ProtoFieldError, ProtoField],
       template: `
         <form [formRoot]="form">
-          <input proto [formField]="form.name" />
+          <input protoField [formField]="form.name" />
           @for (error of form.name().errors(); track error) {
             <p [protoFieldError]="error">{{ error.message }}</p>
           }
@@ -339,11 +340,11 @@ describe('Forms', () => {
       @Component({
         selector: 'test-error-blur',
         changeDetection: ChangeDetectionStrategy.OnPush,
-        imports: [FormRoot, FormField, ProtoFieldError, ProtoFormField],
+        imports: [FormRoot, FormField, ProtoFieldError, ProtoField],
         providers: [{ provide: PROTO_FIELD_ERROR_STRATEGY, useValue: 'onBlur' }],
         template: `
           <form [formRoot]="form">
-            <input proto [formField]="form.name" />
+            <input protoField [formField]="form.name" />
             @for (error of form.name().errors(); track error) {
               <p [protoFieldError]="error">{{ error.message }}</p>
             }
@@ -379,11 +380,11 @@ describe('Forms', () => {
       @Component({
         selector: 'test-error-change',
         changeDetection: ChangeDetectionStrategy.OnPush,
-        imports: [FormRoot, FormField, ProtoFieldError, ProtoFormField],
+        imports: [FormRoot, FormField, ProtoFieldError, ProtoField],
         providers: [{ provide: PROTO_FIELD_ERROR_STRATEGY, useValue: 'onChange' }],
         template: `
           <form [formRoot]="form">
-            <input proto [formField]="form.name" />
+            <input protoField [formField]="form.name" />
             @for (error of form.name().errors(); track error) {
               <p [protoFieldError]="error">{{ error.message }}</p>
             }
@@ -421,12 +422,12 @@ describe('Forms', () => {
       @Component({
         selector: 'test-error-custom',
         changeDetection: ChangeDetectionStrategy.OnPush,
-        imports: [FormRoot, FormField, ProtoFieldError, ProtoFormField],
+        imports: [FormRoot, FormField, ProtoFieldError, ProtoField],
         template: `
           <form [formRoot]="form">
-            <input proto [formField]="form.name" />
+            <input protoField [formField]="form.name" [protoFieldErrorStrategy]="strategy" />
             @for (error of form.name().errors(); track error) {
-              <p [protoErrorStrategy]="strategy" [protoFieldError]="error">{{ error.message }}</p>
+              <p [protoFieldError]="error">{{ error.message }}</p>
             }
           </form>
         `,
@@ -473,10 +474,10 @@ describe('Forms', () => {
     @Component({
       selector: 'test-data-attrs',
       changeDetection: ChangeDetectionStrategy.OnPush,
-      imports: [FormRoot, FormField, ProtoFormField],
+      imports: [FormRoot, FormField, ProtoField],
       template: `
         <form [formRoot]="form">
-          <input proto [formField]="form.name" />
+          <input protoField [formField]="form.name" />
         </form>
       `,
     })
@@ -550,10 +551,10 @@ describe('Forms', () => {
       @Component({
         selector: 'test-invalid',
         changeDetection: ChangeDetectionStrategy.OnPush,
-        imports: [FormRoot, FormField, ProtoFormField],
+        imports: [FormRoot, FormField, ProtoField],
         template: `
           <form [formRoot]="form">
-            <input proto [formField]="form.name" />
+            <input protoField [formField]="form.name" />
           </form>
         `,
       })
@@ -578,10 +579,10 @@ describe('Forms', () => {
       @Component({
         selector: 'test-required',
         changeDetection: ChangeDetectionStrategy.OnPush,
-        imports: [FormRoot, FormField, ProtoFormField],
+        imports: [FormRoot, FormField, ProtoField],
         template: `
           <form [formRoot]="form">
-            <input proto [formField]="form.name" />
+            <input protoField [formField]="form.name" />
           </form>
         `,
       })
@@ -607,10 +608,10 @@ describe('Forms', () => {
       @Component({
         selector: 'test-form-field',
         changeDetection: ChangeDetectionStrategy.OnPush,
-        imports: [FormRoot, FormField, ProtoFormField],
+        imports: [FormRoot, FormField, ProtoField],
         template: `
           <form [formRoot]="form">
-            <input proto [formField]="form.name" />
+            <input protoField [formField]="form.name" />
           </form>
         `,
       })
@@ -620,20 +621,20 @@ describe('Forms', () => {
 
       const { fixture } = await render(TestHost);
       const protoFormField = fixture.debugElement
-        .query(By.directive(ProtoFormField))
-        .injector.get(ProtoFormField);
+        .query(By.directive(ProtoField))
+        .injector.get(ProtoField);
 
-      expect(protoFormField.context).toBeDefined();
+      expect(protoFormField.ctx).toBeDefined();
     });
 
     it('should assign a unique id to the field element', async () => {
       @Component({
         selector: 'test-field-id',
         changeDetection: ChangeDetectionStrategy.OnPush,
-        imports: [FormRoot, FormField, ProtoFormField],
+        imports: [FormRoot, FormField, ProtoField],
         template: `
           <form [formRoot]="form">
-            <input proto [formField]="form.name" />
+            <input protoField [formField]="form.name" />
           </form>
         `,
       })
@@ -659,14 +660,14 @@ describe('Forms', () => {
         ProtoFieldDescription,
         ProtoFieldError,
         ProtoFieldLabel,
-        ProtoFormField,
+        ProtoField,
       ],
       template: `
         <form [formRoot]="form">
           @if (showLabel()) {
             <label protoFieldLabel [for]="form.name">Name</label>
           }
-          <input proto [formField]="form.name" />
+          <input protoField [formField]="form.name" />
           @if (showDescription()) {
             <p [protoFieldDescription]="form.name">Enter your full name</p>
           }
@@ -779,10 +780,10 @@ describe('Forms', () => {
       @Component({
         selector: 'test-resolver',
         changeDetection: ChangeDetectionStrategy.OnPush,
-        imports: [FormRoot, FormField, ProtoFormField],
+        imports: [FormRoot, FormField, ProtoField],
         template: `
           <form [formRoot]="form">
-            <input proto [formField]="form.name" />
+            <input protoField [formField]="form.name" />
           </form>
         `,
       })
@@ -811,10 +812,10 @@ describe('Forms', () => {
       @Component({
         selector: 'test-multi-resolver',
         changeDetection: ChangeDetectionStrategy.OnPush,
-        imports: [FormRoot, FormField, ProtoFormField],
+        imports: [FormRoot, FormField, ProtoField],
         template: `
           <form [formRoot]="form">
-            <input proto [formField]="form.name" />
+            <input protoField [formField]="form.name" />
           </form>
         `,
       })

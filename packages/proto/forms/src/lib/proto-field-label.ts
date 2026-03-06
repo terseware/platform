@@ -10,9 +10,9 @@ import {
   signal,
 } from '@angular/core';
 import type { FieldTree } from '@angular/forms/signals';
-import { ElementRenderer, injectElement, isomorphicEffect, scoped } from '@terseware/utils';
+import { ElementRenderer, injectElement, scoped } from '@terseware/utils';
 import { FieldCtx } from './field-ctx';
-import { FormCtx } from './form-ctx';
+import { installFieldDataAttributes, installFieldErrorDataAttributes } from './forms-di';
 
 @Directive({
   selector: '[protoFieldLabel]',
@@ -23,7 +23,6 @@ import { FormCtx } from './form-ctx';
   },
 })
 export class ProtoFieldLabel<T> {
-  readonly #formCtx = inject(FormCtx<T>);
   readonly #element = injectElement();
   readonly #renderer = inject(ElementRenderer);
   readonly #isNativeLabel = inject(HOST_TAG_NAME).toLowerCase() === 'label';
@@ -35,33 +34,37 @@ export class ProtoFieldLabel<T> {
   readonly #for = signal<string | null>(null);
   readonly for = this.#for.asReadonly();
 
+  readonly contexts = computed(() =>
+    this.field()()
+      .fieldTree()
+      .formFieldBindings()
+      .map(field => runInInjectionContext(field.injector, () => inject(FieldCtx<T>))),
+  );
+
   constructor() {
     effect(() => {
-      const bindings = this.field()().formFieldBindings();
-      const field = bindings[0];
-      if (!field) {
+      const contexts = this.contexts();
+      for (const context of contexts) {
+        scoped(() => context.addLabel(this));
+      }
+
+      const context = contexts[0];
+      if (!context) {
         return;
       }
 
-      if (isDevMode() && this.#isNativeLabel && bindings.length > 1) {
+      if (isDevMode() && this.#isNativeLabel && contexts.length > 1) {
         // eslint-disable-next-line no-console
         console.warn('Proto: Multiple field bindings found on a native label', {
           fieldLabel: this,
-          bindings,
+          contexts,
         });
       }
 
-      const context = runInInjectionContext(field.injector, () => inject(FieldCtx<T>));
-      scoped(() => context.addLabel(this));
       this.#for.set(this.#isNativeLabel ? context.id : null);
     });
 
-    for (const [attribute, condition] of Object.entries(this.#formCtx.dataAttributes)) {
-      isomorphicEffect({
-        write: () => {
-          this.#renderer.setAttr(this.#element, attribute, condition(this.state()) ? '' : null);
-        },
-      });
-    }
+    installFieldDataAttributes<T>(() => this.state());
+    installFieldErrorDataAttributes(() => this.contexts()[0]);
   }
 }

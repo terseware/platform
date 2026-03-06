@@ -65,7 +65,7 @@ export class ProtoTooltipTrigger {
   readonly tooltipOpen = model<boolean>(false);
   readonly tooltipShowDelay = input<number>(600);
   readonly tooltipHideDelay = input<number>(0);
-  readonly tooltipSide = input<TooltipSide>('left');
+  readonly tooltipSide = input<TooltipSide>('top');
   readonly tooltipOffset = input<string, string | number>('0px', {
     transform: v => (isNumber(v) ? `${v}px` : v || '0px'),
   });

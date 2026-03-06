@@ -1,4 +1,4 @@
-import { DOCUMENT, inject, Injectable, isDevMode, signal } from '@angular/core';
+import { DOCUMENT, inject, Injectable, signal } from '@angular/core';
 import { Resolvable } from '@terseware/proto';
 import { ElementRenderer, injectElement, isomorphicEffect } from '@terseware/utils';
 
@@ -9,6 +9,8 @@ import { ElementRenderer, injectElement, isomorphicEffect } from '@terseware/uti
 
 @Injectable({ providedIn: 'root' })
 class GlobalPointerEvents {
+  readonly #doc = inject(DOCUMENT);
+
   #globalIgnoreMouseEvents = false;
   #touchTimeout: ReturnType<typeof setTimeout> | undefined;
 
@@ -17,9 +19,14 @@ class GlobalPointerEvents {
   }
 
   constructor() {
-    const doc = inject(DOCUMENT);
-    doc.addEventListener('pointerup', this.#onGlobalPointerUp, { capture: true, passive: true });
-    doc.addEventListener('touchend', this.#ignoreEmulatedMouse, { capture: true, passive: true });
+    this.#doc.addEventListener('pointerup', this.#onGlobalPointerUp, {
+      capture: true,
+      passive: true,
+    });
+    this.#doc.addEventListener('touchend', this.#ignoreEmulatedMouse, {
+      capture: true,
+      passive: true,
+    });
   }
 
   #ignoreEmulatedMouse(): void {
@@ -37,6 +44,8 @@ class GlobalPointerEvents {
 
 @Resolvable()
 export class Hover {
+  readonly #element = injectElement();
+  readonly #renderer = inject(ElementRenderer);
   readonly #globalPointerEvents = inject(GlobalPointerEvents);
 
   get globalIgnoreMouseEvents(): boolean {
@@ -48,19 +57,36 @@ export class Hover {
   readonly isHovered = this.#isHovered.asReadonly();
 
   constructor() {
-    const el = injectElement();
-    const renderer = inject(ElementRenderer);
-
     isomorphicEffect({
       earlyRead: () => !this.disabled() && this.isHovered(),
-      write: hovered => renderer.setAttr(el, 'data-hover', hovered() ? '' : null),
+      write: hovered => this.#renderer.setAttr(this.#element, 'data-hover', hovered() ? '' : null),
     });
 
-    renderer.listen(el, 'pointerenter', e => !this.disabled() && this.#onPointerEnter(e));
-    renderer.listen(el, 'pointerleave', e => !this.disabled() && this.#onPointerLeave(e));
-    renderer.listen(el, 'touchstart', () => !this.disabled() && this.#onTouchStart());
-    renderer.listen(el, 'mouseenter', e => !this.disabled() && this.#onMouseEnter(e));
-    renderer.listen(el, 'mouseleave', e => !this.disabled() && this.#onMouseLeave(e));
+    this.#renderer.listen(
+      this.#element,
+      'pointerenter',
+      event => !this.disabled() && this.#onPointerEnter(event),
+    );
+    this.#renderer.listen(
+      this.#element,
+      'pointerleave',
+      event => !this.disabled() && this.#onPointerLeave(event),
+    );
+    this.#renderer.listen(
+      this.#element,
+      'touchstart',
+      () => !this.disabled() && this.#onTouchStart(),
+    );
+    this.#renderer.listen(
+      this.#element,
+      'mouseenter',
+      event => !this.disabled() && this.#onMouseEnter(event),
+    );
+    this.#renderer.listen(
+      this.#element,
+      'mouseleave',
+      event => !this.disabled() && this.#onMouseLeave(event),
+    );
   }
 
   #localIgnoreMouseEvents = false;
@@ -71,13 +97,6 @@ export class Hover {
     }
 
     if (!(event.currentTarget as Element)?.contains(event.target as Element)) {
-      if (isDevMode()) {
-        // eslint-disable-next-line no-console
-        console.warn('ProtoHover: pointerenter target is outside currentTarget — event ignored', {
-          currentTarget: event.currentTarget,
-          target: event.target,
-        });
-      }
       return;
     }
 

@@ -1,3 +1,4 @@
+export * from './lib/classes';
 export * from './lib/deep-merge/deep-merge';
 export * from './lib/dispose';
 export * from './lib/element-renderer';
@@ -5,6 +6,7 @@ export * from './lib/get-inj';
 export * from './lib/helpers';
 export * from './lib/inject-helpers';
 export * from './lib/isomorphic';
+export * from './lib/projected-signal';
 export * from './lib/scoped';
 export * from './lib/signal-helpers';
 export * from './lib/signal-weak-map';

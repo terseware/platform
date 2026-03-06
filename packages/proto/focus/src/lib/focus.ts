@@ -41,6 +41,7 @@ function shouldShowFocusVisible(origin: FocusOrigin, element: HTMLElement): bool
 @Resolvable()
 export class Focus {
   readonly #element = injectElement();
+  readonly #renderer = inject(ElementRenderer);
   readonly #focusMonitor = inject(FocusMonitor);
 
   readonly disabled = signal(false);
@@ -64,20 +65,19 @@ export class Focus {
   );
 
   constructor() {
-    const el = this.#element;
-    const r = inject(ElementRenderer);
-
     isomorphicEffect({
       earlyRead: () => !this.disabled() && this.isFocused(),
-      write: focused => r.setAttr(el, 'data-focus', focused() ? '' : null),
+      write: focused => this.#renderer.setAttr(this.#element, 'data-focus', focused() ? '' : null),
     });
     isomorphicEffect({
       earlyRead: () => (this.disabled() ? null : this.focusOrigin()),
-      write: focusOrigin => r.setAttr(el, 'data-focus-origin', focusOrigin()),
+      write: focusOrigin =>
+        this.#renderer.setAttr(this.#element, 'data-focus-origin', focusOrigin()),
     });
     isomorphicEffect({
       earlyRead: () => !this.disabled() && this.isFocusVisible(),
-      write: focusVisible => r.setAttr(el, 'data-focus-visible', focusVisible() ? '' : null),
+      write: focusVisible =>
+        this.#renderer.setAttr(this.#element, 'data-focus-visible', focusVisible() ? '' : null),
     });
   }
 

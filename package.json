@@ -11,7 +11,7 @@
     "fix": "pnpm format && nx run-many -t lint --fix --no-tui",
     "test": "nx run-many -t test --no-tui",
     "build": "nx run-many -t build --no-tui",
-    "build:watch": "nx run-many -t build --no-tui --watch",
+    "build:watch": "nx build proto --watch --no-tui",
     "prepare": "husky"
   },
   "dependencies": {
@@ -67,7 +67,7 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/user-event": "^14.6.1",
     "@types/express": "^5.0.6",
-    "@types/node": "^24.11.0",
+    "@types/node": "^24.12.0",
     "@typescript-eslint/utils": "^8.56.1",
     "@vitest/coverage-v8": "^4.0.18",
     "@vitest/ui": "^4.0.18",

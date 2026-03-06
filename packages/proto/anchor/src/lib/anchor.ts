@@ -6,11 +6,12 @@ export type AnchorName = `--${string}`;
 
 @Resolvable()
 export class Anchor {
+  readonly #element = injectElement();
+  readonly #renderer = inject(ElementRenderer);
+
   readonly name: AnchorName = `--${uniqueId('anchor')}`;
 
   constructor() {
-    const el = injectElement();
-    const renderer = inject(ElementRenderer);
-    renderer.setStyle(el, 'anchorName', this.name);
+    this.#renderer.setStyle(this.#element, 'anchorName', this.name);
   }
 }

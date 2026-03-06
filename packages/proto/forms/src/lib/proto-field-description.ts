@@ -1,8 +1,8 @@
 import { computed, Directive, effect, inject, input, runInInjectionContext } from '@angular/core';
 import type { FieldTree } from '@angular/forms/signals';
-import { ElementRenderer, injectElement, isomorphicEffect, scoped } from '@terseware/utils';
+import { ElementRenderer, injectElement, scoped } from '@terseware/utils';
 import { FieldCtx } from './field-ctx';
-import { FormCtx } from './form-ctx';
+import { installFieldDataAttributes, installFieldErrorDataAttributes } from './forms-di';
 
 @Directive({
   selector: '[protoFieldDescription]',
@@ -12,7 +12,6 @@ import { FormCtx } from './form-ctx';
   },
 })
 export class ProtoFieldDescription<T> {
-  readonly #formCtx = inject(FormCtx<T>);
   readonly #element = injectElement();
   readonly #renderer = inject(ElementRenderer);
 
@@ -22,6 +21,13 @@ export class ProtoFieldDescription<T> {
   });
   readonly state = computed(() => this.field()());
 
+  readonly contexts = computed(() =>
+    this.field()()
+      .fieldTree()
+      .formFieldBindings()
+      .map(field => runInInjectionContext(field.injector, () => inject(FieldCtx<T>))),
+  );
+
   constructor() {
     effect(() => {
       for (const field of this.field()().formFieldBindings()) {
@@ -30,12 +36,7 @@ export class ProtoFieldDescription<T> {
       }
     });
 
-    for (const [attribute, condition] of Object.entries(this.#formCtx.dataAttributes)) {
-      isomorphicEffect({
-        write: () => {
-          this.#renderer.setAttr(this.#element, attribute, condition(this.state()) ? '' : null);
-        },
-      });
-    }
+    installFieldDataAttributes<T>(() => this.state());
+    installFieldErrorDataAttributes(() => this.contexts()[0]);
   }
 }

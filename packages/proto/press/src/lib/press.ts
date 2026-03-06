@@ -4,19 +4,19 @@ import { ElementRenderer, injectElement, isomorphicEffect, onDestroy } from '@te
 
 @Resolvable()
 export class Press {
+  readonly #element = injectElement();
+  readonly #renderer = inject(ElementRenderer);
+  readonly #doc = inject(DOCUMENT);
+
   readonly disabled = signal(false);
 
   readonly #isPressed = signal(false);
   readonly isPressed = this.#isPressed.asReadonly();
 
   constructor() {
-    const el = injectElement();
-    const renderer = inject(ElementRenderer);
-    const doc = inject(DOCUMENT);
-
     isomorphicEffect({
       earlyRead: () => !this.disabled() && this.#isPressed(),
-      write: pressed => renderer.setAttr(el, 'data-press', pressed() ? '' : null),
+      write: pressed => this.#renderer.setAttr(this.#element, 'data-press', pressed() ? '' : null),
     });
 
     let disposableListeners: (() => void)[] = [];
@@ -29,7 +29,7 @@ export class Press {
       }
     };
 
-    renderer.listen(el, 'pointerdown', () => {
+    this.#renderer.listen(this.#element, 'pointerdown', () => {
       if (this.disabled()) {
         return;
       }
@@ -37,13 +37,16 @@ export class Press {
       disposableListeners.forEach(dispose => dispose());
       this.#isPressed.set(true);
       disposableListeners = [
-        renderer.listen(doc, 'pointerup', () => reset()),
-        renderer.listen(
-          doc,
+        this.#renderer.listen(this.#doc, 'pointerup', () => reset()),
+        this.#renderer.listen(
+          this.#doc,
           'pointermove',
-          event => el !== event.target && !el.contains(event.target as Node) && reset(),
+          event =>
+            this.#element !== event.target &&
+            !this.#element.contains(event.target as Node) &&
+            reset(),
         ),
-        renderer.listen(doc, 'pointercancel', () => reset()),
+        this.#renderer.listen(this.#doc, 'pointercancel', () => reset()),
       ];
     });
   }
