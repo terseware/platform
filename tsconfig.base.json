@@ -4,11 +4,9 @@
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,
     "baseUrl": ".",
-    "declaration": true,
-    "declarationMap": true,
+    "emitDecoratorMetadata": false,
     "exactOptionalPropertyTypes": true,
     "experimentalDecorators": false,
-    "useDefineForClassFields": true,
     "forceConsistentCasingInFileNames": true,
     "importHelpers": true,
     "inlineSources": true,
@@ -30,14 +28,17 @@
     "sourceMap": true,
     "strict": true,
     "target": "ES2022",
+    "useDefineForClassFields": true,
     "verbatimModuleSyntax": true,
     "paths": {
       "@terseware/proto": ["packages/proto/src/index.ts"],
       "@terseware/proto/anchor": ["packages/proto/anchor/src/index.ts"],
       "@terseware/proto/button": ["packages/proto/button/src/index.ts"],
       "@terseware/proto/focus": ["packages/proto/focus/src/index.ts"],
+      "@terseware/proto/forms": ["packages/proto/forms/src/index.ts"],
       "@terseware/proto/hover": ["packages/proto/hover/src/index.ts"],
       "@terseware/proto/interact": ["packages/proto/interact/src/index.ts"],
+      "@terseware/proto/menu": ["packages/proto/menu/src/index.ts"],
       "@terseware/proto/press": ["packages/proto/press/src/index.ts"],
       "@terseware/proto/scrolling": ["packages/proto/scrolling/src/index.ts"],
       "@terseware/proto/tooltip": ["packages/proto/tooltip/src/index.ts"],
@@ -47,9 +48,7 @@
       "@terseware/ui/theme": ["packages/ui/theme/src/index.ts"],
       "@terseware/ui/tooltip": ["packages/ui/tooltip/src/index.ts"],
       "@terseware/ui/utils": ["packages/ui/utils/src/index.ts"],
-      "@terseware/utils": ["packages/utils/src/index.ts"],
-      "@terseware/proto/forms": ["packages/proto/forms/src/index.ts"],
-      "@terseware/proto/menu": ["packages/proto/menu/src/index.ts"]
+      "@terseware/utils": ["packages/utils/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]

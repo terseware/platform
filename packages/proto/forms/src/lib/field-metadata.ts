@@ -4,8 +4,8 @@ import { createMetadataKey, metadata, MetadataReducer } from '@angular/forms/sig
 
 export type ResolverEntry<T extends object = object> = {
   type: Type<T>;
-  handler: (instance: T) => void;
   ctx: FieldContext<unknown, PathKind>;
+  handler: (instance: T) => void;
 };
 
 export const RESOLVER = createMetadataKey(MetadataReducer.list<ResolverEntry>());
@@ -21,7 +21,10 @@ export function resolver<
 ): void {
   metadata(path, RESOLVER, ctx => ({
     type,
-    handler: instance => handler({ ...ctx, instance: instance as T }),
     ctx,
+    handler: instance =>
+      handler(
+        Object.assign(ctx, { instance }) as FieldContext<TValue, TPathKind> & { instance: T },
+      ),
   }));
 }

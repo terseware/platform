@@ -9,7 +9,7 @@ import {
 } from '@angular/core';
 import type { FieldState, ValidationError } from '@angular/forms/signals';
 import { ElementRenderer, injectElement, isString, scoped } from '@terseware/utils';
-import { FieldResolver } from './field-resolver';
+import { FieldCtx } from './field-ctx';
 
 export type ProtoFieldErrorStrategy<T> =
   | 'onSubmit'
@@ -50,7 +50,7 @@ export class ProtoFieldError<T> {
 
   readonly triedSubmitting = computed(() => {
     for (const field of this.error().fieldTree().formFieldBindings()) {
-      const context = runInInjectionContext(field.injector, () => inject(FieldResolver<T>));
+      const context = runInInjectionContext(field.injector, () => inject(FieldCtx<T>));
       if (context.triedSubmitting()) {
         return true;
       }
@@ -77,7 +77,7 @@ export class ProtoFieldError<T> {
   constructor() {
     effect(() => {
       for (const field of this.error().fieldTree().formFieldBindings()) {
-        const context = runInInjectionContext(field.injector, () => inject(FieldResolver<T>));
+        const context = runInInjectionContext(field.injector, () => inject(FieldCtx<T>));
         scoped(() => context.addError(this));
       }
     });

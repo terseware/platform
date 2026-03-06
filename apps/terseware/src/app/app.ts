@@ -4,11 +4,14 @@ import { form, FormField, FormRoot, required } from '@angular/forms/signals';
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { ProtoButton } from '@terseware/proto/button';
 import {
+  FormCtx,
   ProtoFieldDescription,
   ProtoFieldError,
   ProtoFieldLabel,
   ProtoFormField,
+  resolver,
 } from '@terseware/proto/forms';
+import { Interact } from '@terseware/proto/interact';
 import { TerseButton } from '@terseware/ui/button';
 import { TerseIcon, toTerseIcon } from '@terseware/ui/icon';
 import { TerseThemeToggle } from '@terseware/ui/theme';
@@ -30,6 +33,7 @@ import { TerseThemeToggle } from '@terseware/ui/theme';
     TerseThemeToggle,
     TerseButton,
   ],
+  providers: [FormCtx],
   host: { class: 'contents' },
   template: `
     <header class="bg-surface flex h-16 items-center px-4 py-3">
@@ -58,7 +62,7 @@ import { TerseThemeToggle } from '@terseware/ui/theme';
         <button terseButton type="submit">Submit</button>
       }
 
-      <button terseButton type="submit" (click)="show.set(!show())">Toggle</button>
+      <button terseButton (click)="show.set(!show())">Toggle</button>
     </form>
     <main>
       <router-outlet />
@@ -75,6 +79,9 @@ export class App {
   readonly form = form(
     signal({ name: 'James', tabIndex: 0 }),
     path => {
+      resolver(path.tabIndex, Interact, ctx => {
+        ctx.instance.tabIndex.set(ctx.value());
+      });
       required(path.name, { message: 'Name is required' });
     },
     {

@@ -1,14 +1,12 @@
-import type { Injector } from '@angular/core';
 import {
   computed,
-  DOCUMENT,
   effect,
   inject,
-  InjectionToken,
+  Injector,
   runInInjectionContext,
   untracked,
 } from '@angular/core';
-import type { FieldState, FieldTree, FormField } from '@angular/forms/signals';
+import type { FieldState, FormField } from '@angular/forms/signals';
 import { FORM_FIELD } from '@angular/forms/signals';
 import { Resolvable } from '@terseware/proto';
 import { Focus } from '@terseware/proto/focus';
@@ -22,7 +20,6 @@ import {
   isomorphicEffect,
   scoped,
   signalBind,
-  SignalWeakSet,
   supportsRequiredAttribute,
   unorderedComparator,
 } from '@terseware/utils';
@@ -31,27 +28,16 @@ import type { ProtoFieldDescription } from './field-description';
 import type { ProtoFieldError } from './field-error';
 import type { ProtoFieldLabel } from './field-label';
 import { RESOLVER } from './field-metadata';
+import { FormCtx } from './form-ctx';
 
-const triedSubmittingSet = new InjectionToken(
-  'triedSubmittingSet',
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  { factory: () => new SignalWeakSet<FieldState<any, string | number>>() },
-);
-
-@Resolvable()
-export class FieldResolver<T> {
+@Resolvable({ ref: FORM_FIELD })
+export class FieldCtx<T> {
+  readonly injector = inject(Injector);
   readonly #renderer = inject(ElementRenderer);
   readonly #field = inject<FormField<T>>(FORM_FIELD);
-  readonly #triedSubmittingSet = inject(triedSubmittingSet);
   readonly id = this.#renderer.id(this.#field.element, 'field');
   readonly state = this.#field.state;
   readonly element = this.#field.element;
-
-  readonly formRootState = computed(() => {
-    // A bit of a hack to get the root field from the first found field directive.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return ((this.#field.state() as any).structure.root.fieldProxy as FieldTree<T>)();
-  });
 
   readonly #labels = new SignalSet<ProtoFieldLabel<T>>();
   addLabel(label: ProtoFieldLabel<T>, injector?: Injector | null | undefined): () => void {
@@ -84,10 +70,12 @@ export class FieldResolver<T> {
     [...this.#errors.values()].some(error => error.visible()),
   );
 
-  readonly triedSubmitting = computed(() => {
-    const formRootState = this.formRootState();
-    return formRootState ? this.#triedSubmittingSet.has(formRootState) : false;
-  });
+  readonly triedSubmitting = computed(() =>
+    runInInjectionContext(
+      this.injector,
+      () => inject(FormCtx, { optional: true })?.triedSubmitting() ?? false,
+    ),
+  );
 
   readonly dataAttributes: Record<string, (state: FieldState<T>) => boolean> = {
     'data-dirty': state => state.dirty(),
@@ -104,18 +92,6 @@ export class FieldResolver<T> {
   constructor() {
     const el = this.#field.element;
     const r = this.#renderer;
-
-    this.#renderer.listen(
-      inject(DOCUMENT),
-      'submit',
-      evt => {
-        const triedSubmit = (evt.target as Node).contains(this.element);
-        if (triedSubmit) {
-          this.#triedSubmittingSet.add(this.formRootState());
-        }
-      },
-      { capture: true },
-    );
 
     const interact = inject(Interact, { host: true });
     signalBind(interact.disabled, () => this.state().disabled());

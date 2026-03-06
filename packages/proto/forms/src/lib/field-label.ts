@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 import type { FieldTree } from '@angular/forms/signals';
 import { ElementRenderer, injectElement, scoped } from '@terseware/utils';
-import { FieldResolver } from './field-resolver';
+import { FieldCtx } from './field-ctx';
 
 @Directive({
   selector: '[protoFieldLabel]',
@@ -47,7 +47,7 @@ export class ProtoFieldLabel<T> {
         });
       }
 
-      const context = runInInjectionContext(field.injector, () => inject(FieldResolver<T>));
+      const context = runInInjectionContext(field.injector, () => inject(FieldCtx<T>));
       scoped(() => context.addLabel(this));
       this.isNativeLabel && this.#for.set(context.id);
     });

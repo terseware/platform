@@ -24,5 +24,10 @@ export default defineConfig(() => ({
       reportsDirectory: '../../coverage/packages/proto',
       provider: 'v8' as const,
     },
+    typecheck: {
+      enabled: false,
+      tsconfig: './tsconfig.lib.json',
+      include: ['./**/*.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    },
   },
 }));

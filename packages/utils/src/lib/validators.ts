@@ -1,3 +1,4 @@
+import type { Type } from '@angular/core';
 import type { MaybeFn } from './types';
 
 /** Type guard for string values. */
@@ -62,30 +63,14 @@ export function notNil<T>(value: T | null | undefined): value is T {
   return !isNil(value);
 }
 
-/**
- * Type guard for string literal types.
- *
- * @remarks
- * Accepts either a literal string for direct comparison or a predicate function
- * for custom matching logic.
- *
- * @example
- * ```ts
- * type Status = 'active' | 'inactive';
- * if (isLiteral<Status>('active', value)) { ... }
- * if (isLiteral<Status>(s => s.startsWith('act'), value)) { ... }
- * ```
- */
-export function isLiteral<T extends string = never>(lit: T, value: unknown): value is T;
-export function isLiteral<T extends string = never>(
-  compareFn: (v: string) => boolean,
-  value: unknown,
-): value is T;
-export function isLiteral<T extends string = never>(
-  compareFn: T | ((v: string) => boolean),
-  value: unknown,
-): value is T {
-  return isString(compareFn) ? compareFn === value : compareFn(String(value));
+/** Type guard for constructor functions (ES6 classes only). */
+export function isClass(value: unknown): value is Type<object> {
+  return isFunction(value) && /^\s*class[\s{]/.test(Function.prototype.toString.call(value));
+}
+
+/** Type guard for Node objects. */
+export function isNode(value: unknown): value is Node {
+  return value instanceof Node;
 }
 
 /**

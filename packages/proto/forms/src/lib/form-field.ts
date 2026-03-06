@@ -1,10 +1,10 @@
 import { Directive, inject } from '@angular/core';
-import { FieldResolver } from './field-resolver';
+import { FieldCtx } from './field-ctx';
 
 @Directive({
   selector: '[proto][formField]',
   exportAs: 'protoFormField',
 })
 export class ProtoFormField<T> {
-  readonly context = inject(FieldResolver<T>, { host: true });
+  readonly context = inject(FieldCtx<T>, { host: true });
 }
