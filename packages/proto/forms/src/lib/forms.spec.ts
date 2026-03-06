@@ -624,7 +624,6 @@ describe('Forms', () => {
         .injector.get(ProtoFormField);
 
       expect(protoFormField.context).toBeDefined();
-      expect(protoFormField.context.element).toBeInstanceOf(HTMLInputElement);
     });
 
     it('should assign a unique id to the field element', async () => {

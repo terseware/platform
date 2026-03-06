@@ -8,8 +8,15 @@ import {
   runInInjectionContext,
 } from '@angular/core';
 import type { FieldState, ValidationError } from '@angular/forms/signals';
-import { ElementRenderer, injectElement, isString, scoped } from '@terseware/utils';
+import {
+  ElementRenderer,
+  injectElement,
+  isomorphicEffect,
+  isString,
+  scoped,
+} from '@terseware/utils';
 import { FieldCtx } from './field-ctx';
+import { FormCtx } from './form-ctx';
 
 export type ProtoFieldErrorStrategy<T> =
   | 'onSubmit'
@@ -35,6 +42,7 @@ export const PROTO_FIELD_ERROR_STRATEGY = new InjectionToken<ProtoFieldErrorStra
   },
 })
 export class ProtoFieldError<T> {
+  readonly #formCtx = inject(FormCtx<T>);
   readonly element = injectElement();
   readonly #renderer = inject(ElementRenderer);
   readonly id = this.#renderer.id(this.element, 'field-error');
@@ -81,5 +89,13 @@ export class ProtoFieldError<T> {
         scoped(() => context.addError(this));
       }
     });
+
+    for (const [attribute, condition] of Object.entries(this.#formCtx.dataAttributes)) {
+      isomorphicEffect({
+        write: () => {
+          this.#renderer.setAttr(this.element, attribute, condition(this.state()) ? '' : null);
+        },
+      });
+    }
   }
 }

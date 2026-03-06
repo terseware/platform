@@ -1,7 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable no-bitwise */
 import type { Type, TypeDecorator } from '@angular/core';
-import { ElementRef, inject, InjectionToken, Injector, runInInjectionContext } from '@angular/core';
+import {
+  ElementRef,
+  inject,
+  InjectionToken,
+  Injector,
+  runInInjectionContext,
+  untracked,
+} from '@angular/core';
 import { getInj, isClass, isFunction } from '@terseware/utils';
 
 const refStackToken = new InjectionToken('RESOLVABLE_REF_STACK', { factory: () => [] as object[] });
@@ -52,66 +59,67 @@ export function Resolvable({
         const host = !!(flags & 1);
         const self = !!(flags & 2);
         const skipSelf = !!(flags & 4);
-
         const injector = inject(Injector, { self, host, skipSelf });
 
-        const seen = new Set<Injector>();
-        let injTraverse: Injector | null = injector;
+        return untracked(() => {
+          const seen = new Set<Injector>();
+          let injTraverse: Injector | null = injector;
 
-        while (injTraverse && !seen.has(injTraverse)) {
-          seen.add(injTraverse);
+          while (injTraverse && !seen.has(injTraverse)) {
+            seen.add(injTraverse);
 
-          const ref = runInInjectionContext(injTraverse, () => getReference(referenceFn));
-          if (ref) {
-            const map = getInstanceMap<R>(ref);
-            if (map.has(R)) {
-              return map.get(R) as R;
+            const ref = runInInjectionContext(injTraverse, () => getReference(referenceFn));
+            if (ref) {
+              const map = getInstanceMap<R>(ref);
+              if (map.has(R)) {
+                return map.get(R) as R;
+              }
             }
+
+            // Non-inherited resolution stops after the first injector.
+            if (!inherit || self || host) break;
+
+            // Walk up. EnvironmentInjector.get(Injector, null, { skipSelf }) returns itself —
+            // detect that to avoid an infinite loop.
+            const parentOpts = { optional: true, skipSelf: true };
+            const parent = injTraverse.get(Injector, null, parentOpts) as Injector | null;
+            injTraverse = parent === injTraverse ? null : parent;
           }
 
-          // Non-inherited resolution stops after the first injector.
-          if (!inherit || self || host) break;
-
-          // Walk up. EnvironmentInjector.get(Injector, null, { skipSelf }) returns itself —
-          // detect that to avoid an infinite loop.
-          const parentOpts = { optional: true, skipSelf: true };
-          const parent = injTraverse.get(Injector, null, parentOpts) as Injector | null;
-          injTraverse = parent === injTraverse ? null : parent;
-        }
-
-        // SkipSelf-only injection: never create, only look up.
-        if (skipSelf) {
-          return null;
-        }
-
-        // No existing instance found — create one in ref's node injector so that
-        // inject() calls inside the constructor resolve from the correct element context.
-        const ref = runInInjectionContext(injector, () => getReference(referenceFn));
-        if (!ref) {
-          return null;
-        }
-
-        // Prefer ref's own injector so node-scoped tokens (ElementRef, CDRef, etc.) resolve
-        // correctly. Fall back to the current injector if ref has no lView (e.g. plain object).
-        const targetInjector = getInj(ref, { injector, optional: true }) ?? injector;
-
-        return runInInjectionContext(targetInjector, () => {
-          const refStack = inject(refStackToken);
-          refStack.push(ref);
-          try {
-            const instance = new R();
-            getInstanceMap(ref).set(R, instance);
-            return instance;
-          } finally {
-            refStack.pop();
+          // SkipSelf-only injection: never create, only look up.
+          if (skipSelf) {
+            return null;
           }
+
+          // No existing instance found — create one in ref's node injector so that
+          // inject() calls inside the constructor resolve from the correct element context.
+          const ref = runInInjectionContext(injector, () => getReference(referenceFn));
+          if (!ref) {
+            return null;
+          }
+
+          // Prefer ref's own injector so node-scoped tokens (ElementRef, CDRef, etc.) resolve
+          // correctly. Fall back to the current injector if ref has no lView (e.g. plain object).
+          const targetInjector = getInj(ref, { injector, optional: true }) ?? injector;
+
+          return runInInjectionContext(targetInjector, () => {
+            const refStack = inject(refStackToken);
+            refStack.push(ref);
+            try {
+              const instance = new R();
+              getInstanceMap(ref).set(R, instance);
+              return instance;
+            } finally {
+              refStack.pop();
+            }
+          });
         });
       };
     }
 
     Object.defineProperty(R, 'name', { value: base.name });
     Object.defineProperty(R.prototype, Symbol.toStringTag, {
-      value: `Resolvable<${base.name}>`,
+      value: `${base.name}_Resolvable`,
       configurable: true,
     });
 

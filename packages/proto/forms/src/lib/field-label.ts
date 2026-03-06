@@ -1,4 +1,5 @@
 import {
+  computed,
   Directive,
   effect,
   HOST_TAG_NAME,
@@ -9,8 +10,9 @@ import {
   signal,
 } from '@angular/core';
 import type { FieldTree } from '@angular/forms/signals';
-import { ElementRenderer, injectElement, scoped } from '@terseware/utils';
+import { ElementRenderer, injectElement, isomorphicEffect, scoped } from '@terseware/utils';
 import { FieldCtx } from './field-ctx';
+import { FormCtx } from './form-ctx';
 
 @Directive({
   selector: '[protoFieldLabel]',
@@ -21,13 +23,15 @@ import { FieldCtx } from './field-ctx';
   },
 })
 export class ProtoFieldLabel<T> {
-  readonly element = injectElement();
+  readonly #formCtx = inject(FormCtx<T>);
+  readonly #element = injectElement();
   readonly #renderer = inject(ElementRenderer);
-  readonly isNativeLabel = inject(HOST_TAG_NAME).toLowerCase() === 'label';
+  readonly #isNativeLabel = inject(HOST_TAG_NAME).toLowerCase() === 'label';
 
+  readonly id = this.#renderer.id(this.#element, 'field-label');
   readonly field = input.required<FieldTree<T, string | number>>({ alias: 'for' });
+  readonly state = computed(() => this.field()());
 
-  readonly id = this.#renderer.id(this.element, 'field-label');
   readonly #for = signal<string | null>(null);
   readonly for = this.#for.asReadonly();
 
@@ -39,7 +43,7 @@ export class ProtoFieldLabel<T> {
         return;
       }
 
-      if (isDevMode() && this.isNativeLabel && bindings.length > 1) {
+      if (isDevMode() && this.#isNativeLabel && bindings.length > 1) {
         // eslint-disable-next-line no-console
         console.warn('Proto: Multiple field bindings found on a native label', {
           fieldLabel: this,
@@ -49,7 +53,15 @@ export class ProtoFieldLabel<T> {
 
       const context = runInInjectionContext(field.injector, () => inject(FieldCtx<T>));
       scoped(() => context.addLabel(this));
-      this.isNativeLabel && this.#for.set(context.id);
+      this.#for.set(this.#isNativeLabel ? context.id : null);
     });
+
+    for (const [attribute, condition] of Object.entries(this.#formCtx.dataAttributes)) {
+      isomorphicEffect({
+        write: () => {
+          this.#renderer.setAttr(this.#element, attribute, condition(this.state()) ? '' : null);
+        },
+      });
+    }
   }
 }

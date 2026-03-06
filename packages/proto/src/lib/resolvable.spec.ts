@@ -43,7 +43,7 @@ describe('Resolvable', () => {
       class MyTaggedState {}
       const Decorated = Resolvable()(MyTaggedState) as typeof MyTaggedState;
       const instance = Object.create(Decorated.prototype);
-      expect(Object.prototype.toString.call(instance)).toBe('[object Resolvable<MyTaggedState>]');
+      expect(Object.prototype.toString.call(instance)).toBe('[object MyTaggedState_Resolvable]');
     });
 
     it('should return the same instance for multiple injections on the same element', async () => {

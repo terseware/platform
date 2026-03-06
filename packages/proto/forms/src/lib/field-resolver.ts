@@ -1,6 +1,6 @@
 import type { Injector } from '@angular/core';
 import { computed, effect, inject, runInInjectionContext, untracked } from '@angular/core';
-import type { FormField } from '@angular/forms/signals';
+import type { FieldState, FieldTree, FormField } from '@angular/forms/signals';
 import { FORM_FIELD } from '@angular/forms/signals';
 import { Resolvable } from '@terseware/proto';
 import { Focus } from '@terseware/proto/focus';
@@ -10,6 +10,7 @@ import { Press } from '@terseware/proto/press';
 import {
   disposable,
   ElementRenderer,
+  isNil,
   isomorphicEffect,
   scoped,
   signalBind,
@@ -23,29 +24,26 @@ import type { ProtoFieldLabel } from './field-label';
 import { RESOLVER } from './field-metadata';
 import { FormCtx } from './form-ctx';
 
-@Resolvable({ ref: FORM_FIELD })
+@Resolvable()
 export class FieldCtx<T> {
-  readonly #formCtx = inject(FormCtx<T>);
   readonly #renderer = inject(ElementRenderer);
   readonly #field = inject<FormField<T>>(FORM_FIELD);
-  readonly #element = this.#field.element;
-
   readonly id = this.#renderer.id(this.#field.element, 'field');
   readonly state = this.#field.state;
+  readonly element = this.#field.element;
+  readonly formCtx: FormCtx | null = null;
+
+  readonly formRootState = computed(() => {
+    // A bit of a hack to get the root field from the first found field directive.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return ((this.#field.state() as any).structure.root.fieldProxy as FieldTree<T>)();
+  });
 
   readonly #labels = new SignalSet<ProtoFieldLabel<T>>();
   addLabel(label: ProtoFieldLabel<T>, injector?: Injector | null | undefined): () => void {
     return disposable(this.addLabel, injector, () => {
       this.#labels.add(label);
       return () => this.#labels.delete(label);
-    });
-  }
-
-  readonly #errors = new SignalSet<ProtoFieldError<T>>();
-  addError(error: ProtoFieldError<T>, injector?: Injector | null | undefined): () => void {
-    return disposable(this.addError, injector, () => {
-      this.#errors.add(error);
-      return () => this.#errors.delete(error);
     });
   }
 
@@ -60,15 +58,34 @@ export class FieldCtx<T> {
     });
   }
 
+  readonly #errors = new SignalSet<ProtoFieldError<T>>();
+  addError(error: ProtoFieldError<T>, injector?: Injector | null | undefined): () => void {
+    return disposable(this.addError, injector, () => {
+      this.#errors.add(error);
+      return () => this.#errors.delete(error);
+    });
+  }
+
   readonly errorsVisible = computed(() =>
     [...this.#errors.values()].some(error => error.visible()),
   );
 
-  readonly triedSubmitting = computed(() => this.#formCtx.triedSubmitting());
+  readonly triedSubmitting = computed(() => this.formCtx?.triedSubmitting() ?? false);
+
+  readonly dataAttributes: Record<string, (state: FieldState<T>) => boolean> = {
+    'data-dirty': state => state.dirty(),
+    'data-filled': state => !isNil(state.value()) && state.value() !== '',
+    'data-invalid': state => state.invalid(),
+    'data-pending': state => state.pending(),
+    'data-pristine': state => !state.dirty(),
+    'data-readonly': state => state.readonly(),
+    'data-required': state => state.required(),
+    'data-touched': state => state.touched(),
+    'data-valid': state => state.valid(),
+  };
 
   constructor() {
-    this.#formCtx.addFieldCtx(this);
-
+    this.formCtx = inject(FormCtx, { optional: true });
     const el = this.#field.element;
     const r = this.#renderer;
 
@@ -78,10 +95,17 @@ export class FieldCtx<T> {
     signalBind(inject(Press).disabled, interact.disabled);
     signalBind(inject(Focus).disabled, interact.hardDisabled); // Allow focus when focusable when disabled is true
 
-    for (const [attribute, condition] of Object.entries(this.#formCtx.dataAttributes)) {
+    for (const [attribute, condition] of Object.entries(this.dataAttributes)) {
       isomorphicEffect({
         write: () => {
-          this.#renderer.setAttr(this.#element, attribute, condition(this.state()) ? '' : null);
+          for (const element of [
+            el,
+            ...[...this.#descriptions.values()].map(d => d.#element),
+            ...[...this.#errors.values()].map(e => e.element),
+            ...[...this.#labels.values()].map(l => l.#element),
+          ]) {
+            r.setAttr(element, attribute, condition(this.state()) ? '' : null);
+          }
         },
       });
     }
@@ -121,6 +145,10 @@ export class FieldCtx<T> {
       },
     });
 
+    this.#installResolver();
+  }
+
+  #installResolver() {
     effect(() => {
       const resolversMeta = this.state().metadata(RESOLVER);
       if (!resolversMeta) {
