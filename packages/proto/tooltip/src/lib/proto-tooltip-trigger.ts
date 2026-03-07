@@ -151,7 +151,7 @@ export class ProtoTooltipTrigger {
         const id = tooltipId();
         id &&
           runInScope(this.#injector, onCleanup, () =>
-            this.#renderer.addAttr(this.element, 'aria-describedby', id),
+            this.#renderer.disposableAttr(this.element, 'aria-describedby', id),
           );
       },
     });

@@ -100,7 +100,7 @@ export default [
       eqeqeq: 'error',
       curly: 'error',
       'guard-for-in': 'error',
-      'no-bitwise': 'error',
+      'no-bitwise': 'off',
       'no-caller': 'error',
       'no-new-wrappers': 'error',
       'no-useless-concat': 'error',

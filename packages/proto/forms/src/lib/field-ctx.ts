@@ -113,7 +113,7 @@ export class FieldCtx<T> {
       write: (idsSource, onCleanup) => {
         const ids = idsSource();
         runInScope(this.#field.injector, onCleanup, () =>
-          this.#renderer.addAttr(this.#element, 'aria-labelledby', ids),
+          this.#renderer.disposableAttr(this.#element, 'aria-labelledby', ids),
         );
       },
     });
@@ -126,7 +126,7 @@ export class FieldCtx<T> {
       write: (idsSource, onCleanup) => {
         const ids = idsSource();
         runInScope(this.#field.injector, onCleanup, () =>
-          this.#renderer.addAttr(this.#element, 'aria-describedby', ids),
+          this.#renderer.disposableAttr(this.#element, 'aria-describedby', ids),
         );
       },
     });

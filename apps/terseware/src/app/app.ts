@@ -1,3 +1,4 @@
+import { CdkDrag } from '@angular/cdk/drag-drop';
 import { httpResource } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, signal } from '@angular/core';
 import { form, FormField, FormRoot, required } from '@angular/forms/signals';
@@ -36,6 +37,7 @@ import { TerseThemeToggle } from '@terseware/ui/theme';
     ProtoMenuTrigger,
     ProtoMenu,
     ProtoMenuItem,
+    CdkDrag,
   ],
   providers: [FormCtx],
   host: { class: 'contents' },
@@ -71,10 +73,16 @@ import { TerseThemeToggle } from '@terseware/ui/theme';
       <br />
       <br />
       <div>
-        <proto-menu-trigger terseButton [protoMenuTrigger]="menuTrigger">Menu</proto-menu-trigger>
+        <proto-menu-trigger cdkDrag terseButton [protoMenuTrigger]="menuTrigger">
+          Menu
+        </proto-menu-trigger>
         <ng-template #menuTrigger>
-          <proto-menu>
-            <proto-menu-item protoMenuItem terseButton>Menu</proto-menu-item>
+          <proto-menu class="bg-surface-light shadow-s grid min-w-40 rounded-md border p-2">
+            <proto-menu-item protoMenuItem [terseButton]="'menu-item'">Menu Item 1</proto-menu-item>
+            <proto-menu-item protoMenuItem [terseButton]="'menu-item'">Menu Item 2</proto-menu-item>
+            <proto-menu-item protoMenuItem [terseButton]="'menu-item'">Menu Item 3</proto-menu-item>
+            <proto-menu-item protoMenuItem [terseButton]="'menu-item'">Menu Item 4</proto-menu-item>
+            <proto-menu-item protoMenuItem [terseButton]="'menu-item'">Menu Item 5</proto-menu-item>
           </proto-menu>
         </ng-template>
       </div>

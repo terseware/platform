@@ -1,91 +1,29 @@
-import { isPlatformBrowser } from '@angular/common';
-import { computed, Directive, inject, input, PLATFORM_ID, signal } from '@angular/core';
-import { isNumber, onDestroy } from '@terseware/utils';
+import { Directive, inject, input } from '@angular/core';
+import { resolve } from '@terseware/proto';
+import { AnchorArrow } from '@terseware/proto/anchor';
+import { signalBind } from '@terseware/utils';
 import { ProtoTooltip } from './proto-tooltip';
 import { ProtoTooltipTrigger } from './proto-tooltip-trigger';
 
 @Directive({
   selector: '[protoTooltipArrow]',
   exportAs: 'protoTooltipArrow',
-  host: {
-    'aria-hidden': 'true',
-    '[style]': 'styles()',
-  },
 })
 export class ProtoTooltipArrow {
   readonly #trigger = inject(ProtoTooltipTrigger);
-  readonly tooltip = inject(ProtoTooltip);
+  readonly #tooltip = inject(ProtoTooltip);
 
-  readonly arrowSize = input<string, string | number>('8px', {
-    transform: v => (isNumber(v) ? `${v}px` : v || '0px'),
-  });
+  readonly #arrow = resolve(AnchorArrow);
+  readonly left = this.#arrow.left;
+  readonly top = this.#arrow.top;
 
-  readonly top = signal('50%');
-  readonly left = signal('50%');
-  readonly sizeHalf = computed(() => `calc(${this.arrowSize()} / 2)`);
-
-  readonly styles = computed(() => {
-    const tooltip = this.#trigger.tooltip();
-    if (!tooltip) {
-      return null;
-    }
-
-    const styles: Record<string, string> = {
-      position: 'absolute',
-      pointerEvents: 'none',
-      transform: 'rotate(45deg)',
-      width: this.arrowSize(),
-      height: this.arrowSize(),
-      left: this.left(),
-      top: this.top(),
-    };
-
-    return styles;
-  });
+  readonly arrowSize = input<string | number>('8px');
 
   constructor() {
     this.#trigger.setArrow(this);
-
-    // Ensure arrow is positioned correctly when the trigger or tooltip changes size
-    if (isPlatformBrowser(inject(PLATFORM_ID))) {
-      const calc = () => this.#calculatePosition();
-      const ro = new ResizeObserver(calc);
-      ro.observe(this.#trigger.element);
-      ro.observe(this.tooltip.element);
-      onDestroy(() => ro.disconnect());
-      calc();
-    }
-  }
-
-  #calculatePosition() {
-    const align = this.tooltip.align();
-    const tooltipRect = this.tooltip.element.getBoundingClientRect();
-    const triggerRect = this.#trigger.element.getBoundingClientRect();
-
-    if (align === 'top' || align === 'bottom') {
-      if (triggerRect.width > tooltipRect.width) {
-        this.left.set(`calc(50% - ${this.sizeHalf()})`);
-      } else {
-        const leftDiff = Math.abs(triggerRect.left - tooltipRect.left);
-        this.left.set(`calc(${leftDiff + triggerRect.width / 2}px - ${this.sizeHalf()})`);
-      }
-      if (align === 'top') {
-        this.top.set(`calc(100% - ${this.sizeHalf()})`);
-      } else if (align === 'bottom') {
-        this.top.set(`calc(0% - ${this.sizeHalf()})`);
-      }
-    } else if (align === 'left' || align === 'right') {
-      if (triggerRect.height > tooltipRect.height) {
-        this.top.set(`calc(50% - ${this.sizeHalf()})`);
-      } else {
-        const topDiff = Math.abs(triggerRect.top - tooltipRect.top);
-        this.top.set(`calc(${topDiff + triggerRect.height / 2}px - ${this.sizeHalf()})`);
-      }
-      if (align === 'left') {
-        this.left.set(`calc(100% - ${this.sizeHalf()})`);
-      } else if (align === 'right') {
-        this.left.set(`calc(0% - ${this.sizeHalf()})`);
-      }
-    }
+    this.#arrow.pointingToElement.set(this.#trigger.element);
+    this.#arrow.attachedToElement.set(this.#tooltip.element);
+    signalBind(this.#arrow.size, this.arrowSize);
+    signalBind(this.#arrow.align, this.#tooltip.align);
   }
 }

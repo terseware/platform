@@ -7,14 +7,15 @@ import {
   effect,
   inject,
   Injector,
-  runInInjectionContext,
   signal,
   TemplateRef,
+  viewChild,
   ViewContainerRef,
 } from '@angular/core';
 import { Resolvable, resolve } from '@terseware/proto';
 import { Anchor } from '@terseware/proto/anchor';
 import { Button } from '@terseware/proto/button';
+import { Focus } from '@terseware/proto/focus';
 import { Hover } from '@terseware/proto/hover';
 import { Interact } from '@terseware/proto/interact';
 import {
@@ -22,13 +23,35 @@ import {
   ElementRenderer,
   injectElement,
   isomorphicEffect,
+  KeyboardEventManager,
+  runInScope,
   signalBind,
 } from '@terseware/utils';
 import { SignalSet } from 'ngxtension/collections';
 
-export type MenuSide = 'top' | 'bottom' | 'left' | 'right';
+export type MenuSide =
+  | 'top center'
+  | 'top span-left'
+  | 'top span-right'
+  | 'top'
+  | 'left center'
+  | 'left span-top'
+  | 'left span-bottom'
+  | 'left'
+  | 'bottom center'
+  | 'bottom span-left'
+  | 'bottom span-right'
+  | 'bottom'
+  | 'right center'
+  | 'right span-top'
+  | 'right span-bottom'
+  | 'right'
+  | 'top left'
+  | 'top right'
+  | 'bottom left'
+  | 'bottom right';
 
-const sideFlip: Record<MenuSide, MenuSide> = {
+const sideFlip: Record<string, string> = {
   top: 'bottom',
   bottom: 'top',
   left: 'right',
@@ -38,7 +61,6 @@ const sideFlip: Record<MenuSide, MenuSide> = {
 export type MenuContent = Type<object> | TemplateRef<{ $implicit: MenuCtx }>;
 
 @Resolvable({ resolveIn: 'any' })
-// @Resolvable({ ref: () => inject(ProtoMenuTrigger, { host: true }) })
 export class MenuCtx {
   readonly #vcr = inject(ViewContainerRef);
   readonly #injector = inject(Injector);
@@ -53,15 +75,8 @@ export class MenuCtx {
   readonly expanded = signal(false);
   readonly hasBeenFocused = signal(false);
   readonly offset = signal<string | number>('0px');
-  readonly side = signal<MenuSide>('bottom');
-  readonly sideFlip = computed(() => sideFlip[this.side()]);
-  readonly align = computed(() => this.menu()?.align() || null);
-  readonly gap = computed(() => {
-    const offset = this.offset();
-    const size = /*this.arrow()?.arrowSize() ??*/ '0px';
-    // Theoretically this should be sqrt(2)/2, but it looks better with 0.8
-    return `calc(${offset} + ${size} * 0.8)`;
-  });
+  readonly side = signal<MenuSide>('right span-bottom');
+  readonly align = computed(() => this.menuContainer()?.align() || null);
 
   readonly #menu = signal<Menu | null>(null);
   readonly menu = this.#menu.asReadonly();
@@ -69,6 +84,18 @@ export class MenuCtx {
     return disposable(this.setMenu, injector, () => {
       this.#menu.set(menu);
       return () => this.#menu.set(null);
+    });
+  }
+
+  readonly #menuContainer = signal<MenuContainer | null>(null);
+  readonly menuContainer = this.#menuContainer.asReadonly();
+  setMenuContainer(
+    menuContainer: MenuContainer,
+    injector?: Injector | null | undefined,
+  ): () => void {
+    return disposable(this.setMenuContainer, injector, () => {
+      this.#menuContainer.set(menuContainer);
+      return () => this.#menuContainer.set(null);
     });
   }
 
@@ -80,39 +107,66 @@ export class MenuCtx {
     });
   }
 
-  readonly activeItem = signal<MenuItem | null>(null);
+  readonly activeItem = computed(() =>
+    [...this.#items.values()].find(item => item.focus.isFocused()),
+  );
 
   constructor() {
     signalBind(this.interact.tabIndex, () => (this.expanded() && this.activeItem() ? -1 : 0));
     this.#renderer.listen(this.#element, 'click', () => this.toggle());
 
-    const injector = this.#injector;
+    isomorphicEffect({
+      write: () => this.#renderer.setAttr(this.#element, 'aria-expanded', `${this.expanded()}`),
+    });
+
+    isomorphicEffect({
+      write: onCleanup => {
+        const id = this.menu()?.id || null;
+        runInScope(this.#injector, onCleanup, () =>
+          this.#renderer.disposableAttr(this.#element, 'aria-controls', id),
+        );
+      },
+    });
+
     effect(onCleanup => {
       const expanded = this.expanded();
       const content = this.content();
-
       if (!expanded || !content) {
         return;
       }
-
-      runInInjectionContext(injector, () => {
-        const ref =
-          content instanceof TemplateRef
-            ? this.#vcr.createEmbeddedView(content, { $implicit: this }, { injector })
-            : this.#vcr.createComponent(content, { injector });
-
-        const container = this.#vcr.createComponent(MenuContainer, { injector });
-
-        onCleanup(() => {
-          container.destroy();
-          ref.destroy();
-        });
+      const container = this.#vcr.createComponent(MenuContainer, { injector: this.#injector });
+      onCleanup(() => {
+        container.destroy();
       });
+    });
+
+    new KeyboardEventManager()
+      .on(' ', () => this.open({ first: true }))
+      .on('Enter', () => this.open({ first: true }))
+      .on('ArrowDown', () => this.open({ first: true }))
+      .on('ArrowUp', () => this.open({ last: true }))
+      .on('Escape', () => this.close());
+
+    this.#renderer.listen(this.#element, 'focusout', event => {
+      console.log(event.target, this.#element);
+      if (
+        this.expanded() &&
+        !this.#element.contains(event.target as Node) &&
+        !this.#menu()?.element.contains(event.target as Node) &&
+        ![...this.#items.values()].some(item => item.element.contains(event.target as Node))
+      ) {
+        this.close();
+      }
     });
   }
 
-  open(): void {
+  open(opts?: { first?: boolean; last?: boolean }): void {
     this.expanded.set(true);
+    if (opts?.first) {
+      this.focusFirst();
+    } else if (opts?.last) {
+      this.focusLast();
+    }
   }
 
   close(): void {
@@ -122,74 +176,105 @@ export class MenuCtx {
   toggle(): void {
     this.expanded.update(open => !open);
   }
+
+  focusNext(): void {
+    const activeItem = this.activeItem();
+    if (activeItem) {
+      const index = [...this.#items.values()].indexOf(activeItem);
+      [...this.#items.values()].at(index + 1)?.focus.focus();
+    }
+  }
+
+  focusPrevious(): void {
+    const activeItem = this.activeItem();
+    if (activeItem) {
+      const index = [...this.#items.values()].indexOf(activeItem);
+      [...this.#items.values()].at(index - 1)?.focus.focus();
+    }
+  }
+
+  focusFirst(): void {
+    [...this.#items.values()].at(0)?.focus.focus();
+  }
+
+  focusLast(): void {
+    [...this.#items.values()].at(-1)?.focus.focus();
+  }
+
+  focusAtIndex(index: number): void {
+    [...this.#items.values()].at(index)?.focus.focus();
+  }
 }
 
 @Resolvable()
 export class Menu {
-  readonly #element = injectElement();
+  readonly element = injectElement();
   readonly #renderer = inject(ElementRenderer);
   readonly ctx = inject(MenuCtx);
-  readonly anchorName = `${this.ctx.anchorName}-menu` as const;
-
-  readonly #align = signal(this.ctx.side());
-  readonly align = this.#align.asReadonly();
+  readonly id = this.#renderer.id(this.element, 'menu');
 
   constructor() {
     this.ctx.setMenu(this);
-    afterEveryRender(() => {
-      const style = getComputedStyle(this.#element) as { positionArea?: MenuSide };
-      this.#align.update(align => style.positionArea ?? align);
-    });
+    this.#renderer.setAttr(this.element, 'role', 'menu');
 
-    isomorphicEffect({
-      write: () => {
-        this.#renderer.styles(this.#element, {
-          anchorName: this.anchorName,
-          positionAnchor: this.ctx.anchorName,
-          containerType: 'anchored',
-          positionArea: this.ctx.side(),
-          positionTryFallbacks: 'flip-block, flip-inline, flip-block flip-inline',
-          position: 'fixed',
-          [`margin-${this.ctx.sideFlip()}`]: this.ctx.gap(),
-        });
-      },
+    this.#renderer.listen(this.element, 'focusout', event => {
+      console.log(event.target, this.element);
+      if (this.ctx.expanded() && !this.element.contains(event.target as Node)) {
+        this.ctx.close();
+      }
     });
   }
 }
 
 @Resolvable()
 export class MenuItem {
+  readonly element = injectElement();
+  readonly #renderer = inject(ElementRenderer);
+  readonly focus = resolve(Focus);
   readonly ctx = resolve(MenuCtx);
   readonly button = resolve(Button);
+  readonly id = this.#renderer.id(this.element, 'menu-item');
 
   constructor() {
     this.ctx.addItem(this);
+    this.#renderer.setAttr(this.element, 'role', 'menuitem');
+
+    isomorphicEffect({
+      write: () => {
+        this.#renderer.setAttr(this.element, 'data-active', this.focus.isFocused() ? 'true' : null);
+      },
+    });
+
+    new KeyboardEventManager()
+      .on('ArrowDown', () => this.ctx.focusNext(), { ignoreRepeat: false })
+      .on('ArrowUp', () => this.ctx.focusPrevious(), { ignoreRepeat: false })
+      .on('Home', () => this.ctx.focusFirst())
+      .on('End', () => this.ctx.focusLast())
+      .on('Enter', () => this.ctx.toggle())
+      .on('Escape', () => this.ctx.close());
+    // .on(this._expandKey, () => this.expand())
+    // .on(this._collapseKey, () => this.collapse())
+    // .on(this.dynamicSpaceKey, () => this.trigger())
+    // .on(this.typeaheadRegexp, e => this.listBehavior.search(e.key));
   }
 }
 
 @Component({
   selector: 'proto-menu-container',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: ``,
+  template: `<ng-container #vcr />`,
   host: {
-    'aria-hidden': 'true',
-    '[style.--trigger]': 'triggerAnchorName',
-    '[style.--menu]': 'menuAnchorName()',
-    // '[style.--gap]': 'ctx.gap()',
-    '[style.--side]': 'ctx.side()',
     '[attr.data-align]': 'ctx.align()',
   },
   styles: `
     :host {
       --hover-buffer: 6px;
       container-type: anchored;
-      position-anchor: var(--trigger);
-      position-area: var(--side);
+      position: fixed;
       position-try-fallbacks:
         flip-block,
         flip-inline,
         flip-block flip-inline;
-      position: fixed;
     }
     :host[data-align='top'],
     :host[data-align='bottom'] {
@@ -207,9 +292,55 @@ export class MenuItem {
   `,
 })
 class MenuContainer {
+  readonly #element = injectElement();
+  readonly #renderer = inject(ElementRenderer);
+  readonly #injector = inject(Injector);
+  readonly vcr = viewChild('vcr', { read: ViewContainerRef });
   readonly ctx = inject(MenuCtx);
   readonly hover = resolve(Hover);
 
   readonly triggerAnchorName = this.ctx.anchorName;
-  readonly menuAnchorName = computed(() => this.ctx.menu()?.anchorName || null);
+  readonly menuAnchorName = `${this.ctx.anchorName}-menu` as const;
+
+  readonly #align = signal(this.ctx.side());
+  readonly align = this.#align.asReadonly();
+
+  constructor() {
+    this.ctx.setMenuContainer(this);
+
+    effect(onCleanup => {
+      const expanded = this.ctx.expanded();
+      const content = this.ctx.content();
+      const vcr = this.vcr();
+
+      if (!expanded || !content || !vcr) {
+        return;
+      }
+
+      const ref =
+        content instanceof TemplateRef
+          ? vcr.createEmbeddedView(content, { $implicit: this.ctx }, { injector: this.#injector })
+          : vcr.createComponent(content, { injector: this.#injector });
+
+      onCleanup(() => {
+        ref.destroy();
+      });
+    });
+
+    isomorphicEffect({
+      write: () => {
+        this.#renderer.styles(this.#element, {
+          anchorName: this.menuAnchorName,
+          positionAnchor: this.ctx.anchorName,
+          positionArea: this.ctx.side(),
+          [`margin-${sideFlip[this.ctx.align()?.split(' ')[0] || 'left']}`]: this.ctx.offset(),
+        });
+      },
+    });
+
+    afterEveryRender(() => {
+      const style = getComputedStyle(this.#element) as { positionArea?: MenuSide };
+      this.#align.update(align => style.positionArea ?? align);
+    });
+  }
 }

@@ -61,14 +61,16 @@ export class ElementRenderer {
     }
   }
 
-  addAttr<E extends Element>(
+  disposableAttr<E extends Element>(
     el: E,
     attr: string,
-    value: string | string[],
+    value: (string | null | undefined) | (string | null | undefined)[],
     injector?: Injector | null | undefined,
   ): () => void {
-    return disposable(this.addAttr, injectorFallback(injector, this.#injector), () => {
-      const values = (Array.isArray(value) ? value : [value]).map(v => v.trim());
+    return disposable(this.disposableAttr, injectorFallback(injector, this.#injector), () => {
+      const values = (Array.isArray(value) ? value : [value])
+        .map(v => v?.trim() || null)
+        .filter(Boolean);
 
       const getFn = () => new Set(el.getAttribute(attr)?.split(' ').filter(Boolean));
       const setFn = (set: Set<string>) => (set.size ? [...set].join(' ') : null);
