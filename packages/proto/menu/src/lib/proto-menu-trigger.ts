@@ -1,6 +1,7 @@
 import { Directive, input } from '@angular/core';
 import { resolve } from '@terseware/proto';
 import { signalBind } from '@terseware/utils';
+
 import type { MenuContent } from './menu-ctx';
 import { Menu, MenuCtx, MenuItem } from './menu-ctx';
 
@@ -32,4 +33,10 @@ export class ProtoMenu {
 })
 export class ProtoMenuItem {
   readonly item = resolve(MenuItem);
+
+  readonly disabled = input(false, { alias: 'protoMenuItemDisabled' });
+
+  constructor() {
+    signalBind(this.item.disabled, this.disabled);
+  }
 }

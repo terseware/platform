@@ -1,12 +1,15 @@
 import type { Type } from '@angular/core';
 import {
   afterEveryRender,
+  afterNextRender,
   ChangeDetectionStrategy,
   Component,
   computed,
+  DOCUMENT,
   effect,
   inject,
   Injector,
+  linkedSignal,
   signal,
   TemplateRef,
   viewChild,
@@ -60,20 +63,24 @@ const sideFlip: Record<string, string> = {
 
 export type MenuContent = Type<object> | TemplateRef<{ $implicit: MenuCtx }>;
 
+/** Debounce timer for typeahead search reset. */
+const TYPEAHEAD_DEBOUNCE_MS = 500;
+
 @Resolvable({ resolveIn: 'any' })
 export class MenuCtx {
   readonly #vcr = inject(ViewContainerRef);
   readonly #injector = inject(Injector);
   readonly #renderer = inject(ElementRenderer);
   readonly #element = injectElement();
+  readonly #doc = inject(DOCUMENT);
 
   readonly button = resolve(Button);
   readonly interact = resolve(Interact);
   readonly anchorName = resolve(Anchor).name;
+  readonly triggerId = this.#renderer.id(this.#element, 'menu-trigger');
 
   readonly content = signal<MenuContent | null>(null);
   readonly expanded = signal(false);
-  readonly hasBeenFocused = signal(false);
   readonly offset = signal<string | number>('0px');
   readonly side = signal<MenuSide>('right span-bottom');
   readonly align = computed(() => this.menuContainer()?.align() || null);
@@ -107,16 +114,33 @@ export class MenuCtx {
     });
   }
 
-  readonly activeItem = computed(() =>
-    [...this.#items.values()].find(item => item.focus.isFocused()),
+  readonly activeItem = linkedSignal(
+    () => [...this.#items.values()].find(item => item.focus.isFocused()) ?? null,
   );
+
+  /** Pending focus action deferred until items are rendered. */
+  readonly #pendingFocus = signal<'first' | 'last' | null>(null);
 
   constructor() {
     signalBind(this.interact.tabIndex, () => (this.expanded() && this.activeItem() ? -1 : 0));
     this.#renderer.listen(this.#element, 'click', () => this.toggle());
+    this.#renderer.listen(
+      this.#element,
+      'keyup',
+      evt => {
+        if (evt.key === ' ' && this.activeItem() === null) {
+          evt.preventDefault();
+          evt.stopPropagation();
+        }
+      },
+      { capture: true },
+    );
 
     isomorphicEffect({
-      write: () => this.#renderer.setAttr(this.#element, 'aria-expanded', `${this.expanded()}`),
+      write: () => {
+        this.#renderer.setAttr(this.#element, 'aria-expanded', `${this.expanded()}`);
+        this.#renderer.setAttr(this.#element, 'aria-haspopup', 'menu');
+      },
     });
 
     isomorphicEffect({
@@ -140,6 +164,27 @@ export class MenuCtx {
       });
     });
 
+    // Deferred focus: wait for items to register, then focus first/last
+    effect(() => {
+      const pending = this.#pendingFocus();
+      const items = [...this.#items.values()];
+      if (!pending || items.length === 0) {
+        return;
+      }
+      // Items are registered; apply focus after next render so DOM is ready
+      afterNextRender(
+        () => {
+          if (pending === 'first') {
+            this.#focusFirstEnabled();
+          } else {
+            this.#focusLastEnabled();
+          }
+          this.#pendingFocus.set(null);
+        },
+        { injector: this.#injector },
+      );
+    });
+
     new KeyboardEventManager()
       .on(' ', () => this.open({ first: true }))
       .on('Enter', () => this.open({ first: true }))
@@ -147,62 +192,144 @@ export class MenuCtx {
       .on('ArrowUp', () => this.open({ last: true }))
       .on('Escape', () => this.close());
 
+    // Close on focusout when focus moves outside the trigger and menu
     this.#renderer.listen(this.#element, 'focusout', event => {
-      console.log(event.target, this.#element);
-      if (
-        this.expanded() &&
-        !this.#element.contains(event.target as Node) &&
-        !this.#menu()?.element.contains(event.target as Node) &&
-        ![...this.#items.values()].some(item => item.element.contains(event.target as Node))
-      ) {
-        this.close();
+      const related = event.relatedTarget as Node | null;
+      if (!this.expanded()) {
+        return;
       }
+      // If relatedTarget is null, focus left the document entirely
+      if (
+        !related ||
+        (!this.#element.contains(related) &&
+          !this.#menu()?.element.contains(related) &&
+          ![...this.#items.values()].some(item => item.element.contains(related)))
+      ) {
+        this.expanded.set(false);
+      }
+    });
+
+    // Click-outside-to-close (don't steal focus from click target)
+    effect(onCleanup => {
+      if (!this.expanded()) {
+        return;
+      }
+      const unlisten = this.#renderer.listen(
+        this.#doc,
+        'click',
+        event => {
+          const target = event.target as Node | null;
+          if (
+            target &&
+            !this.#element.contains(target) &&
+            !this.#menu()?.element.contains(target)
+          ) {
+            this.close({ returnFocus: false });
+          }
+        },
+        { injector: this.#injector },
+      );
+      onCleanup(() => unlisten());
     });
   }
 
   open(opts?: { first?: boolean; last?: boolean }): void {
     this.expanded.set(true);
     if (opts?.first) {
-      this.focusFirst();
+      this.#pendingFocus.set('first');
     } else if (opts?.last) {
-      this.focusLast();
+      this.#pendingFocus.set('last');
     }
   }
 
-  close(): void {
+  close(opts?: { returnFocus?: boolean }): void {
     this.expanded.set(false);
+    this.#pendingFocus.set(null);
+    // Return focus to trigger on close (default: true)
+    if (opts?.returnFocus !== false) {
+      this.#element.focus();
+    }
   }
 
   toggle(): void {
-    this.expanded.update(open => !open);
+    if (this.expanded()) {
+      this.close();
+    } else {
+      this.open();
+    }
   }
 
   focusNext(): void {
+    const items = this.#enabledItems();
     const activeItem = this.activeItem();
+    if (!items.length) return;
     if (activeItem) {
-      const index = [...this.#items.values()].indexOf(activeItem);
-      [...this.#items.values()].at(index + 1)?.focus.focus();
+      const index = items.indexOf(activeItem);
+      // Wrap to first item if at end
+      const nextIndex = (index + 1) % items.length;
+      items[nextIndex]?.focus.focus();
+    } else {
+      // No active: focus first
+      items[0]?.focus.focus();
     }
   }
 
   focusPrevious(): void {
+    const items = this.#enabledItems();
     const activeItem = this.activeItem();
+    if (!items.length) return;
     if (activeItem) {
-      const index = [...this.#items.values()].indexOf(activeItem);
-      [...this.#items.values()].at(index - 1)?.focus.focus();
+      const index = items.indexOf(activeItem);
+      // Wrap to last item if at start
+      const prevIndex = (index - 1 + items.length) % items.length;
+      items[prevIndex]?.focus.focus();
+    } else {
+      // No active: focus last
+      items.at(-1)?.focus.focus();
     }
   }
 
   focusFirst(): void {
-    [...this.#items.values()].at(0)?.focus.focus();
+    this.#focusFirstEnabled();
   }
 
   focusLast(): void {
-    [...this.#items.values()].at(-1)?.focus.focus();
+    this.#focusLastEnabled();
   }
 
   focusAtIndex(index: number): void {
-    [...this.#items.values()].at(index)?.focus.focus();
+    this.#enabledItems().at(index)?.focus.focus();
+  }
+
+  /** Typeahead: focus the next item whose text starts with the given character. */
+  typeahead(char: string): void {
+    const items = this.#enabledItems();
+    const activeItem = this.activeItem();
+    const startIndex = activeItem ? items.indexOf(activeItem) + 1 : 0;
+
+    const lowerChar = char.toLowerCase();
+
+    // Search from after active item to end, then wrap to start
+    for (let i = 0; i < items.length; i++) {
+      const item = items[(startIndex + i) % items.length];
+      const text = item?.element.textContent?.trim().toLowerCase();
+      if (text?.startsWith(lowerChar)) {
+        item?.focus.focus();
+        return;
+      }
+    }
+  }
+
+  #enabledItems(): MenuItem[] {
+    return [...this.#items.values()].filter(item => !item.disabled());
+  }
+
+  #focusFirstEnabled(): void {
+    this.#enabledItems().at(0)?.focus.focus();
+  }
+
+  #focusLastEnabled(): void {
+    this.#enabledItems().at(-1)?.focus.focus();
   }
 }
 
@@ -217,10 +344,18 @@ export class Menu {
     this.ctx.setMenu(this);
     this.#renderer.setAttr(this.element, 'role', 'menu');
 
+    // Set aria-labelledby to reference the trigger element
+    this.#renderer.setAttr(this.element, 'aria-labelledby', this.ctx.triggerId);
+
+    // Close on focusout when focus moves outside the menu
     this.#renderer.listen(this.element, 'focusout', event => {
-      console.log(event.target, this.element);
-      if (this.ctx.expanded() && !this.element.contains(event.target as Node)) {
-        this.ctx.close();
+      const related = event.relatedTarget as Node | null;
+      if (!this.ctx.expanded()) {
+        return;
+      }
+      // If relatedTarget is null, focus left the document entirely
+      if (!related || !this.element.contains(related)) {
+        this.ctx.expanded.set(false);
       }
     });
   }
@@ -232,16 +367,38 @@ export class MenuItem {
   readonly #renderer = inject(ElementRenderer);
   readonly focus = resolve(Focus);
   readonly ctx = resolve(MenuCtx);
+  readonly interact = resolve(Interact);
   readonly button = resolve(Button);
   readonly id = this.#renderer.id(this.element, 'menu-item');
+
+  /** Whether this menu item is disabled. */
+  readonly disabled = signal(false);
+
+  /** Typeahead debounce state. */
+  #typeaheadBuffer = '';
+  #typeaheadTimeout: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     this.ctx.addItem(this);
     this.#renderer.setAttr(this.element, 'role', 'menuitem');
 
+    signalBind(this.interact.tabIndex, () => {
+      const activeItem = this.ctx.activeItem();
+      if (activeItem === this) {
+        return 0;
+      }
+      return activeItem ? -1 : 0;
+    });
+
     isomorphicEffect({
       write: () => {
         this.#renderer.setAttr(this.element, 'data-active', this.focus.isFocused() ? 'true' : null);
+      },
+    });
+
+    isomorphicEffect({
+      write: () => {
+        this.#renderer.setAttr(this.element, 'aria-disabled', this.disabled() ? 'true' : null);
       },
     });
 
@@ -250,12 +407,36 @@ export class MenuItem {
       .on('ArrowUp', () => this.ctx.focusPrevious(), { ignoreRepeat: false })
       .on('Home', () => this.ctx.focusFirst())
       .on('End', () => this.ctx.focusLast())
-      .on('Enter', () => this.ctx.toggle())
-      .on('Escape', () => this.ctx.close());
-    // .on(this._expandKey, () => this.expand())
-    // .on(this._collapseKey, () => this.collapse())
-    // .on(this.dynamicSpaceKey, () => this.trigger())
-    // .on(this.typeaheadRegexp, e => this.listBehavior.search(e.key));
+      .on('Enter', () => this.#activate())
+      .on(' ', () => this.#activate())
+      .on('Escape', () => this.ctx.close())
+      .on(/^[a-z0-9]$/i, event => this.#handleTypeahead(event.key), {
+        preventDefault: false,
+        stopPropagation: false,
+      });
+  }
+
+  /** Activate: click the element and close the menu (WAI-ARIA menuitem behavior). */
+  #activate(): void {
+    if (this.disabled()) {
+      return;
+    }
+    this.element.click();
+    this.ctx.activeItem.set(null);
+    this.ctx.close();
+  }
+
+  /** Accumulate typed characters and search for matching items. */
+  #handleTypeahead(char: string): void {
+    if (this.#typeaheadTimeout) {
+      clearTimeout(this.#typeaheadTimeout);
+    }
+    this.#typeaheadBuffer += char;
+    this.ctx.typeahead(this.#typeaheadBuffer);
+    this.#typeaheadTimeout = setTimeout(() => {
+      this.#typeaheadBuffer = '';
+      this.#typeaheadTimeout = null;
+    }, TYPEAHEAD_DEBOUNCE_MS);
   }
 }
 
@@ -296,7 +477,7 @@ class MenuContainer {
   readonly #renderer = inject(ElementRenderer);
   readonly #injector = inject(Injector);
   readonly vcr = viewChild('vcr', { read: ViewContainerRef });
-  readonly ctx = inject(MenuCtx);
+  readonly ctx = resolve(MenuCtx);
   readonly hover = resolve(Hover);
 
   readonly triggerAnchorName = this.ctx.anchorName;
