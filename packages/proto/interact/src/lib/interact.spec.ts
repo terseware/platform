@@ -1,5 +1,6 @@
-import { Directive, inject } from '@angular/core';
+import { Directive, inject, InjectionToken } from '@angular/core';
 import { By } from '@angular/platform-browser';
+import { resolve } from '@terseware/proto';
 import { render, screen } from '@testing-library/angular';
 import { Interact } from './interact';
 
@@ -7,7 +8,7 @@ import { Interact } from './interact';
   selector: '[testInteract]',
 })
 class TestInteract {
-  readonly state = inject(Interact);
+  readonly state = resolve(Interact);
 }
 
 describe('ProtoInteract', () => {
@@ -15,7 +16,7 @@ describe('ProtoInteract', () => {
     it('should set disabled attribute when disabled', async () => {
       @Directive({ selector: '[disabledBtn]' })
       class DisabledBtn {
-        readonly state = inject(Interact);
+        readonly state = resolve(Interact);
         constructor() {
           this.state.disabled.set(true);
         }
@@ -33,7 +34,7 @@ describe('ProtoInteract', () => {
     it('should not set disabled when focusableWhenDisabled is true', async () => {
       @Directive({ selector: '[focusableBtn]' })
       class FocusableBtn {
-        readonly state = inject(Interact);
+        readonly state = resolve(Interact);
         constructor() {
           this.state.disabled.set(true);
           this.state.focusableWhenDisabled.set(true);
@@ -50,15 +51,23 @@ describe('ProtoInteract', () => {
 
   describe('on non-native element', () => {
     it('should set aria-disabled instead of disabled', async () => {
-      @Directive({ selector: '[disabledDiv]' })
+      const MY_TOKEN = new InjectionToken('MY_TOKEN');
+      @Directive({
+        selector: '[disabledDiv]',
+        providers: [{ provide: MY_TOKEN, useValue: 'MY_VALUE' }],
+      })
       class DisabledDiv {
-        readonly state = inject(Interact);
+        readonly myState = inject(MY_TOKEN);
+        readonly state = resolve(Interact);
         constructor() {
+          console.log('state', this.myState);
           this.state.disabled.set(true);
         }
       }
 
-      await render(`<div disabledDiv role="button">Test</div>`, { imports: [DisabledDiv] });
+      await render(`<div disabledDiv role="button">Test</div>`, {
+        imports: [DisabledDiv],
+      });
       const el = screen.getByRole('button');
       expect(el).not.toHaveAttribute('disabled');
       expect(el).toHaveAttribute('aria-disabled', 'true');
@@ -67,7 +76,7 @@ describe('ProtoInteract', () => {
     it('should set tabindex to -1 when disabled', async () => {
       @Directive({ selector: '[disabledDiv]' })
       class DisabledDiv {
-        readonly state = inject(Interact);
+        readonly state = resolve(Interact);
         constructor() {
           this.state.disabled.set(true);
         }
@@ -82,7 +91,7 @@ describe('ProtoInteract', () => {
     it('should set data-disabled when disabled', async () => {
       @Directive({ selector: '[disabledBtn]' })
       class DisabledBtn {
-        readonly state = inject(Interact);
+        readonly state = resolve(Interact);
         constructor() {
           this.state.disabled.set(true);
         }
@@ -102,7 +111,7 @@ describe('ProtoInteract', () => {
     it('should block non-Tab keydown when disabled', async () => {
       @Directive({ selector: '[disabledBtn]' })
       class DisabledBtn {
-        readonly state = inject(Interact);
+        readonly state = resolve(Interact);
         constructor() {
           this.state.disabled.set(true);
         }
@@ -123,7 +132,7 @@ describe('ProtoInteract', () => {
     it('should allow Tab key when disabled (no focus trap)', async () => {
       @Directive({ selector: '[disabledBtn]' })
       class DisabledBtn {
-        readonly state = inject(Interact);
+        readonly state = resolve(Interact);
         constructor() {
           this.state.disabled.set(true);
         }
@@ -155,7 +164,7 @@ describe('ProtoInteract', () => {
     it('should return the props as state', async () => {
       @Directive({ selector: '[stateDir]' })
       class StateDir {
-        readonly state = inject(Interact);
+        readonly state = resolve(Interact);
         constructor() {
           this.state.disabled.set(true);
           this.state.tabIndex.set(5);

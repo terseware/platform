@@ -26,7 +26,9 @@ export function getInj(
       if (options?.optional) {
         return null;
       }
-      throw new Error(`No lView found for given object: ${instance}`);
+      throw new Error(
+        `Proto: No LView found for given object: ${instance}. Cannot resolve injector.`,
+      );
     }
 
     const { lView, nodeIndex } = context;
@@ -50,7 +52,7 @@ export function getInj(
   });
 }
 
-export function getLContext(instance: object): ReturnType<typeof ɵgetLContext> | null {
+function getLContext(instance: object) {
   try {
     return ɵgetLContext(instance);
   } catch {

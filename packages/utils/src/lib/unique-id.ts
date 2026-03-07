@@ -19,3 +19,23 @@ export function uniqueId<const T extends string = 'proto'>(
     return `${prefix}-${id}` as const;
   });
 }
+
+const uniqueNumberMap = new InjectionToken<Map<string | symbol, number>>('uniqueNumberMap', {
+  factory: () => new Map<string, number>(),
+});
+
+const NO_PREFIX: unique symbol = Symbol('NO_PREFIX');
+
+/** Generate a unique id for an element. */
+export function uniqueNumber(
+  prefix?: string | undefined,
+  injector?: Injector | null | undefined,
+): number {
+  return assertInjector(uniqueNumber, injector, () => {
+    const map = inject(uniqueNumberMap);
+    const p = prefix || NO_PREFIX;
+    const id = map.get(p) ?? 0;
+    map.set(p, id + 1);
+    return id;
+  });
+}

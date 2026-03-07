@@ -24,7 +24,7 @@ export function disposer(destroyRef: DestroyRef, fn: () => void): () => void {
   return () => {
     if (!called) {
       called = true;
-      rmDestroy();
+      !destroyRef.destroyed && rmDestroy();
       fn();
     }
   };
@@ -50,7 +50,10 @@ export function disposable(
   injector: Injector | null | undefined,
   factory: () => () => void,
 ): () => void {
-  return assertInjector(fn, injector, () => disposer(inject(DestroyRef), factory()));
+  return assertInjector(fn, injector, () => {
+    const disposeFn = factory();
+    return disposer(inject(DestroyRef), () => disposeFn());
+  });
 }
 
 export function injectorFallback(

@@ -4,11 +4,11 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  inject,
   input,
   numberAttribute,
 } from '@angular/core';
 import { lucideLoaderCircle } from '@ng-icons/lucide';
+import { resolve } from '@terseware/proto';
 import { Button } from '@terseware/proto/button';
 import { TerseIcon, toTerseIcon } from '@terseware/ui/icon';
 import { cn } from '@terseware/ui/utils';
@@ -95,7 +95,7 @@ export class TerseButton {
   readonly type = input<string | null>();
 
   constructor() {
-    const button = inject(Button);
+    const button = resolve(Button);
     signalBind(button.disabled, () => this.disabled() || this.loading());
     signalBind(button.focusableWhenDisabled, () => this.loading());
     signalBind(button.tabIndex, this.tabIndex);

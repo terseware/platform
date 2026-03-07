@@ -1,5 +1,6 @@
 import type { BooleanInput } from '@angular/cdk/coercion';
-import { booleanAttribute, Directive, inject, input, output } from '@angular/core';
+import { booleanAttribute, Directive, input, output } from '@angular/core';
+import { resolve } from '@terseware/proto';
 import { onChange, signalBind } from '@terseware/utils';
 import { Press } from './press';
 
@@ -8,7 +9,7 @@ import { Press } from './press';
   exportAs: 'protoPress',
 })
 export class ProtoPress {
-  readonly #press = inject(Press);
+  readonly #press = resolve(Press);
 
   readonly disabled = input<boolean, BooleanInput>(this.#press.disabled(), {
     transform: booleanAttribute,

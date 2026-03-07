@@ -1,5 +1,6 @@
 import type { BooleanInput } from '@angular/cdk/coercion';
-import { booleanAttribute, Directive, inject, input, output } from '@angular/core';
+import { booleanAttribute, Directive, input, output } from '@angular/core';
+import { resolve } from '@terseware/proto';
 import { onChange, signalBind } from '@terseware/utils';
 import { Intersect } from './intersect';
 
@@ -8,7 +9,7 @@ import { Intersect } from './intersect';
   exportAs: 'protoIntersect',
 })
 export class ProtoIntersect {
-  readonly #intersect = inject(Intersect);
+  readonly #intersect = resolve(Intersect);
 
   readonly disabled = input<boolean, BooleanInput>(this.#intersect.disabled(), {
     transform: booleanAttribute,

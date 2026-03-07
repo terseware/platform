@@ -1,6 +1,7 @@
 import type { FocusOrigin } from '@angular/cdk/a11y';
 import type { BooleanInput } from '@angular/cdk/coercion';
-import { booleanAttribute, Directive, inject, input, output } from '@angular/core';
+import { booleanAttribute, Directive, input, output } from '@angular/core';
+import { resolve } from '@terseware/proto';
 import { onChange, signalBind } from '@terseware/utils';
 import { Focus } from './focus';
 
@@ -9,7 +10,7 @@ import { Focus } from './focus';
   exportAs: 'protoFocus',
 })
 export class ProtoFocus {
-  readonly #focus = inject(Focus);
+  readonly #focus = resolve(Focus);
 
   /**
    * Whether focus tracking is disabled.

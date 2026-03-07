@@ -1,5 +1,6 @@
 import type { BooleanInput, NumberInput } from '@angular/cdk/coercion';
-import { booleanAttribute, Directive, inject, input, numberAttribute } from '@angular/core';
+import { booleanAttribute, Directive, input, numberAttribute } from '@angular/core';
+import { resolve } from '@terseware/proto';
 import { signalBind } from '@terseware/utils';
 import { Button } from './button';
 
@@ -8,7 +9,7 @@ import { Button } from './button';
   exportAs: 'protoButton',
 })
 export class ProtoButton {
-  readonly button = inject(Button);
+  readonly button = resolve(Button);
 
   readonly disabled = input<boolean, BooleanInput>(this.button.disabled(), {
     transform: booleanAttribute,

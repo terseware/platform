@@ -12,6 +12,7 @@ import {
   resolver,
 } from '@terseware/proto/forms';
 import { Interact } from '@terseware/proto/interact';
+import { ProtoMenu, ProtoMenuItem, ProtoMenuTrigger } from '@terseware/proto/menu';
 import { TerseButton } from '@terseware/ui/button';
 import { TerseIcon, toTerseIcon } from '@terseware/ui/icon';
 import { TerseThemeToggle } from '@terseware/ui/theme';
@@ -32,6 +33,9 @@ import { TerseThemeToggle } from '@terseware/ui/theme';
     TerseIcon,
     TerseThemeToggle,
     TerseButton,
+    ProtoMenuTrigger,
+    ProtoMenu,
+    ProtoMenuItem,
   ],
   providers: [FormCtx],
   host: { class: 'contents' },
@@ -49,8 +53,8 @@ import { TerseThemeToggle } from '@terseware/ui/theme';
       <span class="flex-1"></span>
       <terse-theme-toggle />
     </header>
-    <form [formRoot]="form">
-      @if (show()) {
+    @if (show()) {
+      <form [formRoot]="form">
         <label protoFieldLabel [for]="form.name">Name</label>
         <input protoField [formField]="form.name" />
         <input protoField type="number" [formField]="form.tabIndex" />
@@ -60,10 +64,25 @@ import { TerseThemeToggle } from '@terseware/ui/theme';
           <p [protoFieldError]="error">{{ error.message }}</p>
         }
         <button terseButton type="submit">Submit</button>
-      }
+      </form>
 
-      <button terseButton (click)="show.set(!show())">Toggle</button>
-    </form>
+      <br />
+      <br />
+      <br />
+      <br />
+      <div>
+        <proto-menu-trigger terseButton [protoMenuTrigger]="menuTrigger">Menu</proto-menu-trigger>
+        <ng-template #menuTrigger>
+          <proto-menu>
+            <proto-menu-item protoMenuItem terseButton>Menu</proto-menu-item>
+          </proto-menu>
+        </ng-template>
+      </div>
+    }
+
+    <div>
+      <!-- <button terseButton (click)="show.set(!show())">Toggle</button> -->
+    </div>
     <main>
       <router-outlet />
     </main>

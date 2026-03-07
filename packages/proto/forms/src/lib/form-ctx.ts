@@ -1,17 +1,25 @@
-import type { Injector } from '@angular/core';
-import { DOCUMENT, inject, signal } from '@angular/core';
-import type { FieldState } from '@angular/forms/signals';
-import { FORM_FIELD } from '@angular/forms/signals';
-import { Resolvable, RESOLVABLE_REF } from '@terseware/proto';
-import { disposable, ElementRenderer, injectElement, isNode } from '@terseware/utils';
+import { computed, DOCUMENT, inject, Injector, runInInjectionContext, signal } from '@angular/core';
+import type { FormField } from '@angular/forms/signals';
+import { FORM_FIELD, FormRoot } from '@angular/forms/signals';
+import { Resolvable } from '@terseware/proto';
+import { disposable, ElementRenderer, injectElement, isNode, onDestroy } from '@terseware/utils';
 import { SignalSet } from 'ngxtension/collections';
 import type { FieldCtx } from './field-ctx';
 import { installFieldDataAttributes } from './forms-di';
-import { getRootFieldState } from './forms-utils';
 
-@Resolvable({ ref: () => getRootFieldState(inject(FORM_FIELD).state()) })
+@Resolvable({ resolveIn: () => inject(FormRoot, { optional: true }) ?? inject(FORM_FIELD) })
 export class FormCtx<T> {
-  readonly state = inject<FieldState<T>>(RESOLVABLE_REF);
+  readonly #injector = inject(Injector);
+  readonly formRoot = computed(() =>
+    runInInjectionContext(
+      this.#injector,
+      () =>
+        inject(FormRoot<T>, { optional: true })?.fieldTree() ??
+        inject<FormField<T>>(FORM_FIELD).field()().fieldTree,
+    ),
+  );
+
+  readonly state = computed(() => this.formRoot()());
   readonly element = injectElement();
   readonly #renderer = inject(ElementRenderer);
 
@@ -27,25 +35,33 @@ export class FormCtx<T> {
   }
 
   constructor() {
+    console.log('BOK');
+    // Don't install data attributes if the root element is also a form field
+    // since form fields are already installed with data attributes
     if (!inject(FORM_FIELD, { optional: true, host: true })) {
-      // Don't install data attributes if the root element is also a form field
-      // since form fields are already installed with data attributes
-      installFieldDataAttributes(() => this.state);
+      installFieldDataAttributes(() => this.state());
     }
+
+    onDestroy(() => {
+      console.log('BOK44');
+    });
 
     this.#renderer.listen(
       inject(DOCUMENT),
       'submit',
       event => {
+        console.log(event.target);
         const triedSubmit = isNode(event.target) && event.target.contains(this.element);
         if (triedSubmit) {
           this.#triedSubmitting.set(true);
-          if (this.state.invalid()) {
-            this.state.focusBoundControl();
+          if (this.state().invalid()) {
+            this.state().focusBoundControl();
           }
         }
       },
       { capture: true },
     );
+
+    console.log(this.element);
   }
 }

@@ -26,6 +26,9 @@ type GlobalEventMap<T extends GlobalEventTarget> = T extends 'window'
 
 type CSSStyles = CSSStyleDeclaration & {
   anchorName: string;
+  positionAnchor: string;
+  positionArea: string;
+  positionTryFallbacks: string;
 };
 
 type CSSPropertyValue<K extends string> = K extends keyof CSSStyles
@@ -98,6 +101,17 @@ export class ElementRenderer {
       } else {
         this.#renderer.setStyle(el, style, String(value), flags);
       }
+    }
+  }
+
+  /** Sets multiple styles at once. */
+  styles<E extends Element>(
+    el: E,
+    styles: { [K in keyof CSSStyles & string]?: CSSPropertyValue<K> | null | undefined },
+  ): void {
+    for (const [key, value] of Object.entries(styles)) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      this.setStyle(el, key as any, value);
     }
   }
 

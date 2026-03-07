@@ -1,5 +1,5 @@
 import { inject, signal } from '@angular/core';
-import { Resolvable } from '@terseware/proto';
+import { Resolvable, resolve } from '@terseware/proto';
 import { Focus } from '@terseware/proto/focus';
 import { Hover } from '@terseware/proto/hover';
 import { Interact } from '@terseware/proto/interact';
@@ -38,14 +38,14 @@ export class Button {
   readonly type = signal<string | null>(null);
 
   constructor() {
-    const interact = inject(Interact);
+    const interact = resolve(Interact);
     signalBind(interact.disabled, this.disabled);
     signalBind(interact.focusableWhenDisabled, this.focusableWhenDisabled);
     signalBind(interact.tabIndex, this.tabIndex);
 
-    signalBind(inject(Hover).disabled, interact.disabled);
-    signalBind(inject(Press).disabled, interact.disabled);
-    signalBind(inject(Focus).disabled, interact.hardDisabled); // Allow focus when focusable when disabled is true
+    signalBind(resolve(Hover).disabled, interact.disabled);
+    signalBind(resolve(Press).disabled, interact.disabled);
+    signalBind(resolve(Focus).disabled, interact.hardDisabled); // Allow focus when focusable when disabled is true
 
     isomorphicEffect({
       earlyRead: () => {

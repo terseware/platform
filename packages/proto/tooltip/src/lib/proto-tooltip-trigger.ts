@@ -16,6 +16,7 @@ import {
   ViewContainerRef,
 } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+import { resolve } from '@terseware/proto';
 import { Anchor } from '@terseware/proto/anchor';
 import { Focus } from '@terseware/proto/focus';
 import { Hover } from '@terseware/proto/hover';
@@ -27,7 +28,7 @@ import {
   isomorphicEffect,
   onChange,
   onDestroy,
-  scoped,
+  runInScope,
 } from '@terseware/utils';
 import { debounce, skip, timer } from 'rxjs';
 import type { ProtoTooltip } from './proto-tooltip';
@@ -51,16 +52,16 @@ export class ProtoTooltipTrigger {
   readonly #injector = inject(Injector);
   readonly #doc = inject(DOCUMENT);
   readonly #renderer = inject(ElementRenderer);
-  readonly #anchor = inject(Anchor);
-  readonly #hover = inject(Hover);
-  readonly #focus = inject(Focus);
+  readonly #hover = resolve(Hover);
+  readonly #focus = resolve(Focus);
+
   readonly element = injectElement();
+  readonly anchorName = resolve(Anchor).name;
 
-  readonly anchorName = this.#anchor.name;
-
-  readonly content = model<
-    Type<unknown> | TemplateRef<{ $implicit: ProtoTooltipTrigger }> | null | undefined
-  >(null, { alias: 'protoTooltipTrigger' });
+  readonly content = model<Type<unknown> | TemplateRef<{ $implicit: ProtoTooltipTrigger }> | null>(
+    null,
+    { alias: 'protoTooltipTrigger' },
+  );
 
   readonly tooltipOpen = model<boolean>(false);
   readonly tooltipShowDelay = input<number>(600);
@@ -101,14 +102,21 @@ export class ProtoTooltipTrigger {
   readonly #isInstant = signal(false);
   readonly isInstant = this.#isInstant.asReadonly();
 
-  readonly #hoverSources = signal([linkedSignal(() => this.#hover.isHovered())]);
-
   #openTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
   #set(data: { isInstant: boolean; tooltipOpen: boolean }): void {
     this.#isInstant.set(data.isInstant);
     this.#openTimeoutId && clearTimeout(this.#openTimeoutId);
     this.#openTimeoutId = setTimeout(() => this.tooltipOpen.set(data.tooltipOpen));
+  }
+
+  readonly #hoverSources = signal([linkedSignal(() => this.#hover.isHovered())]);
+  addHoverSource(source: Signal<boolean>, injector?: Injector | null | undefined): () => void {
+    return disposable(this.addHoverSource, injector, () => {
+      const ctrl = linkedSignal(source);
+      this.#hoverSources.update(src => [...src, ctrl]);
+      return () => this.#hoverSources.update(src => src.filter(s => s !== ctrl));
+    });
   }
 
   constructor() {
@@ -127,7 +135,7 @@ export class ProtoTooltipTrigger {
           ? this.#vcr.createEmbeddedView(content, { $implicit: this }, { injector: this.#injector })
           : this.#vcr.createComponent(content, { injector: this.#injector });
 
-      const hoverContainer = this.#vcr.createComponent(TooltipHoverContainer, {
+      const hoverContainer = this.#vcr.createComponent(TooltipContainer, {
         injector: this.#injector,
       });
 
@@ -139,24 +147,15 @@ export class ProtoTooltipTrigger {
 
     isomorphicEffect({
       earlyRead: () => this.tooltip()?.id,
-      write: tooltipId => {
+      write: (tooltipId, onCleanup) => {
         const id = tooltipId();
-        id && scoped(() => this.#renderer.addAttr(this.element, 'aria-describedby', id));
+        id &&
+          runInScope(this.#injector, onCleanup, () =>
+            this.#renderer.addAttr(this.element, 'aria-describedby', id),
+          );
       },
     });
 
-    this.#setupListeners();
-  }
-
-  addHoverSource(source: Signal<boolean>, injector?: Injector | null | undefined): () => void {
-    return disposable(this.addHoverSource, injector, () => {
-      const ctrl = linkedSignal(source);
-      this.#hoverSources.update(src => [...src, ctrl]);
-      return () => this.#hoverSources.update(src => src.filter(s => s !== ctrl));
-    });
-  }
-
-  #setupListeners() {
     this.#renderer.listen(this.#doc, 'keydown', event => {
       if (event.key === 'Escape') {
         this.#set({ isInstant: true, tooltipOpen: false });
@@ -192,7 +191,7 @@ export class ProtoTooltipTrigger {
 }
 
 @Component({
-  selector: 'proto-tooltip-hover-container',
+  selector: 'proto-tooltip-container',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: ``,
   host: {
@@ -230,9 +229,9 @@ export class ProtoTooltipTrigger {
     }
   `,
 })
-class TooltipHoverContainer {
+class TooltipContainer {
   readonly trigger = inject(ProtoTooltipTrigger);
-  readonly hover = inject(Hover);
+  readonly hover = resolve(Hover);
   readonly align = this.trigger.align;
 
   readonly triggerAnchorName = this.trigger.anchorName;

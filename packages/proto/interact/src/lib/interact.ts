@@ -7,7 +7,7 @@ import {
   supportsDisabledAttribute,
 } from '@terseware/utils';
 
-@Resolvable({ inherit: true })
+@Resolvable()
 export class Interact {
   readonly #element = injectElement();
   readonly #renderer = inject(ElementRenderer);

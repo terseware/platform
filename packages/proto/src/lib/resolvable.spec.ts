@@ -9,9 +9,9 @@ import {
   signal,
 } from '@angular/core';
 import { By } from '@angular/platform-browser';
-import { injectElement, uniqueId } from '@terseware/utils';
+import { uniqueId } from '@terseware/utils';
 import { render } from '@testing-library/angular';
-import { Resolvable, RESOLVABLE_REF } from './resolvable';
+import { Resolvable, resolve } from './resolvable';
 
 describe('Resolvable', () => {
   describe('basic resolution', () => {
@@ -23,7 +23,7 @@ describe('Resolvable', () => {
 
       @Directive({ selector: '[testDir]' })
       class TestDir {
-        readonly state = inject(MyState);
+        readonly state = resolve(MyState);
       }
 
       const { fixture } = await render(`<div testDir>Test</div>`, { imports: [TestDir] });
@@ -54,12 +54,12 @@ describe('Resolvable', () => {
 
       @Directive({ selector: '[dirA]' })
       class DirA {
-        readonly state = inject(SharedState);
+        readonly state = resolve(SharedState);
       }
 
       @Directive({ selector: '[dirB]' })
       class DirB {
-        readonly state = inject(SharedState);
+        readonly state = resolve(SharedState);
       }
 
       const { fixture } = await render(`<div dirA dirB>Test</div>`, {
@@ -77,7 +77,7 @@ describe('Resolvable', () => {
 
       @Directive({ selector: '[testDir]' })
       class TestDir {
-        readonly state = inject(PerElementState);
+        readonly state = resolve(PerElementState);
       }
 
       const { fixture } = await render(`<div testDir id="a">A</div><div testDir id="b">B</div>`, {
@@ -98,7 +98,7 @@ describe('Resolvable', () => {
 
       @Directive({ selector: '[testDir]' })
       class TestDir {
-        readonly state = inject(IdentityState);
+        readonly state = resolve(IdentityState);
       }
 
       const { fixture } = await render(`<div testDir>Test</div>`, { imports: [TestDir] });
@@ -120,7 +120,7 @@ describe('Resolvable', () => {
         template: '<span>isolated</span>',
       })
       class IsolatedComp {
-        readonly state = inject(HostScopedState);
+        readonly state = resolve(HostScopedState);
       }
 
       const { fixture } = await render(`<isolated-comp /><isolated-comp />`, {
@@ -136,7 +136,7 @@ describe('Resolvable', () => {
     });
 
     it('should inherit from parent when inherit is true', async () => {
-      @Resolvable({ inherit: true })
+      @Resolvable({ resolveIn: 'any' })
       class InheritState {
         readonly id = uniqueId();
       }
@@ -147,7 +147,7 @@ describe('Resolvable', () => {
         template: '<ng-content />',
       })
       class ChildComp {
-        readonly state = inject(InheritState);
+        readonly state = resolve(InheritState);
       }
 
       @Component({
@@ -157,7 +157,7 @@ describe('Resolvable', () => {
         template: '<child-comp>Content</child-comp>',
       })
       class TestHost {
-        readonly state = inject(InheritState);
+        readonly state = resolve(InheritState);
       }
 
       const { fixture } = await render(TestHost);
@@ -169,7 +169,7 @@ describe('Resolvable', () => {
     });
 
     it('should NOT inherit when inherit is false, creating separate instances for parent and child', async () => {
-      @Resolvable({ inherit: false })
+      @Resolvable()
       class NonInheritState {
         readonly id = uniqueId();
       }
@@ -180,7 +180,7 @@ describe('Resolvable', () => {
         template: '<span>child</span>',
       })
       class ChildComp {
-        readonly state = inject(NonInheritState);
+        readonly state = resolve(NonInheritState);
       }
 
       @Component({
@@ -190,7 +190,7 @@ describe('Resolvable', () => {
         template: '<child-comp />',
       })
       class ParentComp {
-        readonly state = inject(NonInheritState);
+        readonly state = resolve(NonInheritState);
       }
 
       const { fixture } = await render(ParentComp);
@@ -204,7 +204,7 @@ describe('Resolvable', () => {
   });
 
   describe('injection flags', () => {
-    it('should scope to current element with inject({ self: true })', async () => {
+    it('should scope to current element with resolve({ self: true })', async () => {
       @Resolvable()
       class SelfState {
         readonly value = signal('self');
@@ -212,13 +212,13 @@ describe('Resolvable', () => {
 
       @Directive({ selector: '[creator]' })
       class CreatorDir {
-        readonly state = inject(SelfState);
+        readonly state = resolve(SelfState);
       }
 
       @Directive({ selector: '[selfConsumer]' })
       class SelfConsumerDir {
         // self: true should only look at the current element
-        readonly state = inject(SelfState, { self: true });
+        readonly state = inject(SelfState, { host: true });
       }
 
       // Both directives on the same element: self should find the instance
@@ -262,7 +262,7 @@ describe('Resolvable', () => {
       @Directive({ selector: '[creator]' })
       class CreatorDir {
         // Creates the instance on this element
-        readonly state = inject(SkipSelfShared);
+        readonly state = resolve(SkipSelfShared);
       }
 
       @Directive({ selector: '[skipSelfConsumer]' })
@@ -282,26 +282,6 @@ describe('Resolvable', () => {
       // skipSelf skips the current element's instance and finds nothing above
       expect(consumer.state).toBeNull();
     });
-
-    it('should resolve a fresh instance even with inject({ optional: true })', async () => {
-      @Resolvable()
-      class OptionalState {
-        readonly value = signal('resolved');
-      }
-
-      @Directive({ selector: '[testDir]' })
-      class TestDir {
-        // __NG_ELEMENT_ID__ creates instances regardless of optional flag
-        readonly state = inject(OptionalState, { optional: true });
-      }
-
-      const { fixture } = await render(`<div testDir>Test</div>`, { imports: [TestDir] });
-      const dir = fixture.debugElement.query(By.directive(TestDir)).injector.get(TestDir);
-
-      expect(dir.state).not.toBeNull();
-      expect(dir.state).toBeInstanceOf(OptionalState);
-      expect(dir.state!.value()).toBe('resolved');
-    });
   });
 
   describe('referenceFn option', () => {
@@ -309,14 +289,14 @@ describe('Resolvable', () => {
       @Injectable({ providedIn: 'root' })
       class CustomRef {}
 
-      @Resolvable({ ref: () => inject(CustomRef) })
+      @Resolvable({ resolveIn: () => inject(CustomRef), fallbackInjector: true })
       class CustomRefState {
         readonly value = signal('custom');
       }
 
       @Directive({ selector: '[testDir]' })
       class TestDir {
-        readonly state = inject(CustomRefState);
+        readonly state = resolve(CustomRefState);
       }
 
       const { fixture } = await render(`<div testDir>Test</div>`, {
@@ -332,14 +312,14 @@ describe('Resolvable', () => {
       class ClassRef {}
 
       // Pass the class itself, not a factory — exercises the isClass(refFn) branch
-      @Resolvable({ ref: ClassRef })
+      @Resolvable({ resolveIn: () => inject(ClassRef), fallbackInjector: true })
       class ClassRefState {
         readonly value = signal('class-ref');
       }
 
       @Directive({ selector: '[testDir]' })
       class TestDir {
-        readonly state = inject(ClassRefState);
+        readonly state = resolve(ClassRefState);
       }
 
       const { fixture } = await render(`<div testDir>Test</div>`, {
@@ -355,14 +335,14 @@ describe('Resolvable', () => {
       @Injectable({ providedIn: 'root' })
       class SingletonRef {}
 
-      @Resolvable({ ref: () => inject(SingletonRef) })
+      @Resolvable({ resolveIn: () => inject(SingletonRef), fallbackInjector: true })
       class SharedViaRef {
         readonly id = uniqueId();
       }
 
       @Directive({ selector: '[testDir]' })
       class TestDir {
-        readonly state = inject(SharedViaRef);
+        readonly state = resolve(SharedViaRef);
       }
 
       const { fixture } = await render(`<div testDir id="x">X</div><div testDir id="y">Y</div>`, {
@@ -383,14 +363,14 @@ describe('Resolvable', () => {
       class SingletonClassRef {}
 
       // Pass the class directly instead of a factory
-      @Resolvable({ ref: SingletonClassRef })
+      @Resolvable({ resolveIn: () => inject(SingletonClassRef), fallbackInjector: true })
       class SharedViaClassRef {
         readonly id = uniqueId();
       }
 
       @Directive({ selector: '[testDir]' })
       class TestDir {
-        readonly state = inject(SharedViaClassRef);
+        readonly state = resolve(SharedViaClassRef);
       }
 
       const { fixture } = await render(`<div testDir id="a">A</div><div testDir id="b">B</div>`, {
@@ -420,7 +400,7 @@ describe('Resolvable', () => {
 
       @Directive({ selector: '[testDir]' })
       class TestDir {
-        readonly state = inject(ConstructorState);
+        readonly state = resolve(ConstructorState);
       }
 
       const { fixture } = await render(`<div testDir>Test</div>`, { imports: [TestDir] });
@@ -441,12 +421,12 @@ describe('Resolvable', () => {
 
       @Directive({ selector: '[dirA]' })
       class DirA {
-        readonly state = inject(CountState);
+        readonly state = resolve(CountState);
       }
 
       @Directive({ selector: '[dirB]' })
       class DirB {
-        readonly state = inject(CountState);
+        readonly state = resolve(CountState);
       }
 
       await render(`<div dirA dirB>Test</div>`, { imports: [DirA, DirB] });
@@ -456,7 +436,7 @@ describe('Resolvable', () => {
     it('should not re-run constructor when child inherits via inherit: true', async () => {
       let constructCount = 0;
 
-      @Resolvable({ inherit: true })
+      @Resolvable({ resolveIn: 'any' })
       class InheritedCount {
         constructor() {
           constructCount++;
@@ -469,7 +449,7 @@ describe('Resolvable', () => {
         template: '<span>child</span>',
       })
       class ChildComp {
-        readonly state = inject(InheritedCount);
+        readonly state = resolve(InheritedCount);
       }
 
       @Component({
@@ -479,7 +459,7 @@ describe('Resolvable', () => {
         template: '<child-comp />',
       })
       class ParentComp {
-        readonly state = inject(InheritedCount);
+        readonly state = resolve(InheritedCount);
       }
 
       const { fixture } = await render(ParentComp);
@@ -503,7 +483,7 @@ describe('Resolvable', () => {
 
       @Directive({ selector: '[testDir]' })
       class TestDir {
-        readonly state = inject(InjectingState);
+        readonly state = resolve(InjectingState);
       }
 
       const { fixture } = await render(`<div testDir>Test</div>`, { imports: [TestDir] });
@@ -524,7 +504,7 @@ describe('Resolvable', () => {
         template: '<span>child</span>',
       })
       class ChildComp {
-        readonly state = inject(AutoResolvedState);
+        readonly state = resolve(AutoResolvedState);
       }
 
       @Component({
@@ -534,7 +514,7 @@ describe('Resolvable', () => {
         template: '<child-comp />',
       })
       class ParentComp {
-        readonly state = inject(AutoResolvedState);
+        readonly state = resolve(AutoResolvedState);
         constructor() {
           this.state.active.set(true);
         }
@@ -567,8 +547,8 @@ describe('Resolvable', () => {
 
       @Directive({ selector: '[testDir]' })
       class TestDir {
-        readonly a = inject(StateA);
-        readonly b = inject(StateB);
+        readonly a = resolve(StateA);
+        readonly b = resolve(StateB);
       }
 
       const { fixture } = await render(`<div testDir>Test</div>`, { imports: [TestDir] });
@@ -592,7 +572,7 @@ describe('Resolvable', () => {
 
       @Directive({ selector: '[testDir]' })
       class TestDir {
-        readonly state = inject(BaseState);
+        readonly state = resolve(BaseState);
       }
 
       const { fixture } = await render(`<div testDir>Test</div>`, { imports: [TestDir] });
@@ -618,7 +598,7 @@ describe('Resolvable', () => {
 
       @Directive({ selector: '[testDir]' })
       class TestDir {
-        readonly state = inject(ChildState);
+        readonly state = resolve(ChildState);
       }
 
       const { fixture } = await render(`<div testDir>Test</div>`, { imports: [TestDir] });
@@ -632,7 +612,7 @@ describe('Resolvable', () => {
 
   describe('nested component tree', () => {
     it('should share instances across parent and child when inherit is true', async () => {
-      @Resolvable({ inherit: true })
+      @Resolvable({ resolveIn: 'any' })
       class SharedScopedState {
         readonly level = signal(0);
       }
@@ -643,7 +623,7 @@ describe('Resolvable', () => {
         template: '<span>inner</span>',
       })
       class InnerComp {
-        readonly state = inject(SharedScopedState);
+        readonly state = resolve(SharedScopedState);
       }
 
       @Component({
@@ -653,7 +633,7 @@ describe('Resolvable', () => {
         template: '<inner-comp />',
       })
       class OuterComp {
-        readonly state = inject(SharedScopedState);
+        readonly state = resolve(SharedScopedState);
         constructor() {
           this.state.level.set(1);
         }
@@ -668,7 +648,7 @@ describe('Resolvable', () => {
     });
 
     it('should resolve from grandparent through 3-level deep tree with inherit: true', async () => {
-      @Resolvable({ inherit: true })
+      @Resolvable({ resolveIn: 'any' })
       class DeepState {
         readonly origin = signal('grandparent');
       }
@@ -679,7 +659,7 @@ describe('Resolvable', () => {
         template: '<span>grandchild</span>',
       })
       class GrandchildComp {
-        readonly state = inject(DeepState);
+        readonly state = resolve(DeepState);
       }
 
       @Component({
@@ -689,7 +669,7 @@ describe('Resolvable', () => {
         template: '<grandchild-comp />',
       })
       class ParentComp {
-        readonly state = inject(DeepState);
+        readonly state = resolve(DeepState);
       }
 
       @Component({
@@ -699,7 +679,7 @@ describe('Resolvable', () => {
         template: '<parent-comp />',
       })
       class GrandparentComp {
-        readonly state = inject(DeepState);
+        readonly state = resolve(DeepState);
       }
 
       const { fixture } = await render(GrandparentComp);
@@ -726,7 +706,7 @@ describe('Resolvable', () => {
 
       @Directive({ selector: '[testDir]' })
       class TestDir {
-        readonly state = inject(SiblingState);
+        readonly state = resolve(SiblingState);
       }
 
       const { fixture } = await render(
@@ -754,7 +734,7 @@ describe('Resolvable', () => {
         template: '<ng-content />',
       })
       class ProjectingComp {
-        readonly state = inject(ViewProviderState);
+        readonly state = resolve(ViewProviderState);
       }
 
       @Component({
@@ -763,7 +743,7 @@ describe('Resolvable', () => {
         template: '<span>projected</span>',
       })
       class ProjectedChild {
-        readonly state = inject(ViewProviderState);
+        readonly state = resolve(ViewProviderState);
       }
 
       @Component({
@@ -783,52 +763,6 @@ describe('Resolvable', () => {
 
       // viewProviders does not leak to projected content, so child gets its own instance
       expect(parentState).not.toBe(childState);
-    });
-  });
-
-  describe('RESOLVABLE_REF', () => {
-    it('should return the reference object for the instance', async () => {
-      @Directive({ selector: '[refDir]' })
-      class RefDir {
-        readonly id = uniqueId();
-      }
-
-      @Resolvable({ ref: RefDir })
-      class ResRefDir {
-        readonly ref = inject(RESOLVABLE_REF);
-      }
-
-      @Resolvable()
-      class ResRefEl {
-        readonly ref = inject(RESOLVABLE_REF);
-      }
-
-      @Directive({ selector: '[testDir]' })
-      class TestDir {
-        readonly state = inject(ResRefDir);
-      }
-
-      @Component({
-        selector: 'test-host',
-        changeDetection: ChangeDetectionStrategy.OnPush,
-        imports: [TestDir, RefDir],
-        template: `
-          <div refDir>
-            <div testDir>Test</div>
-          </div>
-        `,
-      })
-      class TestHost {
-        readonly element = injectElement();
-        readonly state = inject(ResRefEl);
-      }
-
-      const { fixture } = await render(TestHost);
-      const host = fixture.componentInstance;
-      expect(host.state.ref).toBe(host.element);
-      const refDir = fixture.debugElement.query(By.directive(RefDir)).injector.get(RefDir);
-      const dir = fixture.debugElement.query(By.directive(TestDir)).injector.get(TestDir);
-      expect(dir.state.ref).toBe(refDir);
     });
   });
 });

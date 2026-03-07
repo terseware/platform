@@ -1,5 +1,6 @@
 import type { BooleanInput, NumberInput } from '@angular/cdk/coercion';
-import { booleanAttribute, Directive, inject, input, numberAttribute } from '@angular/core';
+import { booleanAttribute, Directive, input, numberAttribute } from '@angular/core';
+import { resolve } from '@terseware/proto';
 import { signalBind } from '@terseware/utils';
 import { Interact } from './interact';
 
@@ -8,7 +9,7 @@ import { Interact } from './interact';
   exportAs: 'protoInteract',
 })
 export class ProtoInteract {
-  readonly #interact = inject(Interact);
+  readonly #interact = resolve(Interact);
 
   readonly disabled = input<boolean, BooleanInput>(this.#interact.disabled(), {
     transform: booleanAttribute,

@@ -1,6 +1,6 @@
 import { computed, Directive, effect, inject, input, runInInjectionContext } from '@angular/core';
 import type { FieldTree } from '@angular/forms/signals';
-import { ElementRenderer, injectElement, scoped } from '@terseware/utils';
+import { ElementRenderer, injectElement, runInScope } from '@terseware/utils';
 import { FieldCtx } from './field-ctx';
 import { installFieldDataAttributes, installFieldErrorDataAttributes } from './forms-di';
 
@@ -29,10 +29,10 @@ export class ProtoFieldDescription<T> {
   );
 
   constructor() {
-    effect(() => {
+    effect(onCleanup => {
       for (const field of this.field()().formFieldBindings()) {
         const context = runInInjectionContext(field.injector, () => inject(FieldCtx<T>));
-        scoped(() => context.addDescription(this));
+        runInScope(field.injector, onCleanup, () => context.addDescription(this));
       }
     });
 

@@ -9,7 +9,7 @@ const serverConfig: ApplicationConfig = {
       withRoutes([
         {
           path: '**',
-          renderMode: RenderMode.Prerender,
+          renderMode: RenderMode.Client,
         },
       ]),
     ),

@@ -2,7 +2,7 @@ import type { Injector } from '@angular/core';
 import { computed, effect, inject, runInInjectionContext, signal, untracked } from '@angular/core';
 import type { FormField } from '@angular/forms/signals';
 import { FORM_FIELD } from '@angular/forms/signals';
-import { Resolvable } from '@terseware/proto';
+import { Resolvable, resolve } from '@terseware/proto';
 import { Focus } from '@terseware/proto/focus';
 import { Hover } from '@terseware/proto/hover';
 import { Interact } from '@terseware/proto/interact';
@@ -11,7 +11,7 @@ import {
   disposable,
   ElementRenderer,
   isomorphicEffect,
-  scoped,
+  runInScope,
   signalBind,
   supportsRequiredAttribute,
   unorderedComparator,
@@ -29,7 +29,7 @@ import type { ProtoFieldDescription } from './proto-field-description';
 import type { ProtoFieldError } from './proto-field-error';
 import type { ProtoFieldLabel } from './proto-field-label';
 
-@Resolvable({ ref: FORM_FIELD })
+@Resolvable()
 export class FieldCtx<T> {
   readonly #renderer = inject(ElementRenderer);
   readonly #field = inject<FormField<T>>(FORM_FIELD);
@@ -66,23 +66,26 @@ export class FieldCtx<T> {
     });
   }
 
+  readonly formCtx = computed(() =>
+    runInInjectionContext(this.#field.injector, () => resolve(FormCtx<T>)),
+  );
+
   readonly errorsVisible = computed(() =>
     shouldFieldErrorsBeVisible(this.errorStrategy(), this.state(), this.formCtx()),
   );
 
-  readonly formCtx = computed(() =>
-    runInInjectionContext(this.#field.injector, () => inject(FormCtx<T>)),
-  );
   readonly triedSubmitting = computed(() => this.formCtx().triedSubmitting());
 
   constructor() {
-    const interact = inject(Interact, { host: true });
+    const interact = resolve(Interact);
     signalBind(interact.disabled, () => this.state().disabled());
-    signalBind(inject(Hover).disabled, interact.disabled);
-    signalBind(inject(Press).disabled, interact.disabled);
-    signalBind(inject(Focus).disabled, interact.hardDisabled); // Allow focus when focusable when disabled is true
+    signalBind(resolve(Hover).disabled, interact.disabled);
+    signalBind(resolve(Press).disabled, interact.disabled);
+    signalBind(resolve(Focus).disabled, interact.hardDisabled); // Allow focus when focusable when disabled is true
 
-    effect(() => scoped(() => this.formCtx().addFieldCtx(this)));
+    effect(onCleanup =>
+      runInScope(this.#field.injector, onCleanup, () => this.formCtx().addFieldCtx(this)),
+    );
 
     installFieldDataAttributes(() => this.state());
     installFieldErrorDataAttributes(() => this);
@@ -107,9 +110,11 @@ export class FieldCtx<T> {
       earlyRead: computed(() => [...this.#labels.values()].map(label => label.id), {
         equal: unorderedComparator,
       }),
-      write: idsSource => {
+      write: (idsSource, onCleanup) => {
         const ids = idsSource();
-        scoped(() => this.#renderer.addAttr(this.#element, 'aria-labelledby', ids));
+        runInScope(this.#field.injector, onCleanup, () =>
+          this.#renderer.addAttr(this.#element, 'aria-labelledby', ids),
+        );
       },
     });
 
@@ -118,9 +123,11 @@ export class FieldCtx<T> {
         () => [...this.#descriptions.values(), ...this.#errors.values()].map(item => item.id),
         { equal: unorderedComparator },
       ),
-      write: idsSource => {
+      write: (idsSource, onCleanup) => {
         const ids = idsSource();
-        scoped(() => this.#renderer.addAttr(this.#element, 'aria-describedby', ids));
+        runInScope(this.#field.injector, onCleanup, () =>
+          this.#renderer.addAttr(this.#element, 'aria-describedby', ids),
+        );
       },
     });
 

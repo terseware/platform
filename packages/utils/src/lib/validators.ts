@@ -24,7 +24,7 @@ export function isFunction<T, A extends never>(value: MaybeFn<T, A>): value is (
 }
 
 /** Type guard for arrays. */
-export function isArray(value: unknown): value is unknown[] {
+export function isArray<T = unknown>(value: unknown): value is T[] {
   return Array.isArray(value);
 }
 

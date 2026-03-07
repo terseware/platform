@@ -1,9 +1,10 @@
-import { DOCUMENT, inject, signal } from '@angular/core';
+import { DOCUMENT, inject, Injector, signal } from '@angular/core';
 import { Resolvable } from '@terseware/proto';
 import { ElementRenderer, injectElement, isomorphicEffect, onDestroy } from '@terseware/utils';
 
 @Resolvable()
 export class Press {
+  readonly #injector = inject(Injector);
   readonly #element = injectElement();
   readonly #renderer = inject(ElementRenderer);
   readonly #doc = inject(DOCUMENT);
@@ -37,7 +38,7 @@ export class Press {
       disposableListeners.forEach(dispose => dispose());
       this.#isPressed.set(true);
       disposableListeners = [
-        this.#renderer.listen(this.#doc, 'pointerup', () => reset()),
+        this.#renderer.listen(this.#doc, 'pointerup', () => reset(), { injector: this.#injector }),
         this.#renderer.listen(
           this.#doc,
           'pointermove',
@@ -45,8 +46,11 @@ export class Press {
             this.#element !== event.target &&
             !this.#element.contains(event.target as Node) &&
             reset(),
+          { injector: this.#injector },
         ),
-        this.#renderer.listen(this.#doc, 'pointercancel', () => reset()),
+        this.#renderer.listen(this.#doc, 'pointercancel', () => reset(), {
+          injector: this.#injector,
+        }),
       ];
     });
   }

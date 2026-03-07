@@ -7,7 +7,7 @@ export * from './lib/helpers';
 export * from './lib/inject-helpers';
 export * from './lib/isomorphic';
 export * from './lib/projected-signal';
-export * from './lib/scoped';
+export * from './lib/run-in-scope';
 export * from './lib/signal-helpers';
 export * from './lib/signal-weak-map';
 export * from './lib/signal-weak-set';

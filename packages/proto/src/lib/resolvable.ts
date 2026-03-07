@@ -1,156 +1,171 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable no-bitwise */
-import type { Type, TypeDecorator } from '@angular/core';
+
+import type { Injector, Type, TypeDecorator } from '@angular/core';
 import {
-  ElementRef,
   inject,
   InjectionToken,
-  Injector,
   runInInjectionContext,
   untracked,
+  ViewContainerRef,
 } from '@angular/core';
 import { getInj, isClass, isFunction } from '@terseware/utils';
+import { assertInjector } from 'ngxtension/assert-injector';
 
-const refStackToken = new InjectionToken('RESOLVABLE_REF_STACK', { factory: () => [] as object[] });
+const RESOLVABLE = '__TERSEWARE_PROTO_RESOLVABLE__' as const;
 
-export const RESOLVABLE_REF = new InjectionToken('RESOLVABLE_REF');
-Object.defineProperty(RESOLVABLE_REF, '__NG_ELEMENT_ID__', {
-  writable: true,
-  value: (_flags: number): object | null => inject(refStackToken).at(-1) ?? null,
-});
-
-export type ResolvableOptions = {
-  /**
-   * Whether to inherit the resolvable instance from the parent injector.
-   * - `true`: Resolve the instance from the host or any parent.
-   * - `false`: Resolve the instance from the host only.
-   * @default false
-   */
-  inherit?: boolean;
-
-  /**
-   * A function that is used for lookup where to resolve the instance in.
-   * Must return a stable, unique object spanning the DI tree.
-   * A good example is `() => inject(ElementRef).nativeElement`
-   * since a DOM element is a stable, unique object.
-   *
-   * @default () => inject(ElementRef).nativeElement
-   */
-  ref?: Type<object> | (() => object) | InjectionToken<object>;
+export type ResolverOptions<R extends object> = {
+  resolveIn: (() => R) | 'host' | 'any';
+  fallbackInjector: boolean;
 };
 
-/**
- * Decorator that marks a class as dynamically resolvable via DI or in the DOM tree
- * using an ambient dependency injection algorithm.
- *
- * @remarks
- * Hooks into Angular's `__NG_ELEMENT_ID__` protocol so that `inject(MyResolvable)`
- * participates in normal element-injector resolution. Instances are cached per reference
- * object (default: host element), so multiple directives on the same element share one
- * instance.
- */
-export function Resolvable({
-  inherit = false,
-  ref: referenceFn = () => inject(ElementRef).nativeElement,
-}: ResolvableOptions = {}): TypeDecorator {
+type ResolverMetadata<R extends object = object> = {
+  baseName: string;
+  defaultOptions: ResolverOptions<R>;
+};
+
+export function isResolvable<R extends object = object>(
+  type: Type<object>,
+): type is Type<object> & { [RESOLVABLE]: ResolverMetadata<R> } {
+  return isClass(type) && RESOLVABLE in type;
+}
+
+export function Resolvable<R extends object = object>(
+  options?: Partial<ResolverOptions<R>>,
+): TypeDecorator {
   return function (base: any) {
-    class R extends base {
-      static __NG_ELEMENT_ID__ = (flags: number): R | null => {
-        const host = !!(flags & 1);
-        const self = !!(flags & 2);
-        const skipSelf = !!(flags & 4);
-        const injector = inject(Injector, { self, host, skipSelf });
+    class Base extends base {
+      static [RESOLVABLE]: ResolverMetadata<R> = {
+        baseName: base.name,
+        defaultOptions: {
+          resolveIn: options?.resolveIn ?? 'host',
+          fallbackInjector: options?.fallbackInjector ?? false,
+        },
+      };
 
-        return untracked(() => {
-          const seen = new Set<Injector>();
-          let injTraverse: Injector | null = injector;
+      static __NG_ELEMENT_ID__ = (): Base | null => {
+        const { resolveIn } = Base[RESOLVABLE].defaultOptions;
 
-          while (injTraverse && !seen.has(injTraverse)) {
-            seen.add(injTraverse);
-
-            const ref = runInInjectionContext(injTraverse, () => {
-              try {
-                return getReference(referenceFn);
-              } catch {
-                return null;
-              }
-            });
-            if (ref) {
-              const map = getInstanceMap<R>(ref);
-              if (map.has(R)) {
-                return map.get(R) as R;
-              }
-            }
-
-            // Non-inherited resolution stops after the first injector.
-            if (!inherit || self || host) break;
-
-            // Walk up. EnvironmentInjector.get(Injector, null, { skipSelf }) returns itself —
-            // detect that to avoid an infinite loop.
-            const parentOpts = { optional: true, skipSelf: true };
-            const parent = injTraverse.get(Injector, null, parentOpts) as Injector | null;
-            injTraverse = parent === injTraverse ? null : parent;
+        if (isFunction(resolveIn)) {
+          const ref = resolveIn();
+          const inst = tryGetInstance<R, Base>(ref, Base);
+          if (inst) {
+            return inst;
           }
+        }
 
-          // if (base.name.includes('FormCtx')) {
-          //   debugger;
-          // }
+        if (resolveIn === 'any') {
+          return traverseVcr(inject(ViewContainerRef), Base);
+        }
 
-          // SkipSelf-only injection: never create, only look up.
-          if (skipSelf) {
-            return null;
-          }
-
-          // No existing instance found — create one in ref's node injector so that
-          // inject() calls inside the constructor resolve from the correct element context.
-          const ref = runInInjectionContext(injector, () => getReference(referenceFn));
-          if (!ref) {
-            return null;
-          }
-
-          // Prefer ref's own injector so node-scoped tokens (ElementRef, CDRef, etc.) resolve
-          // correctly. Fall back to the current injector if ref has no lView (e.g. plain object).
-          const targetInjector = getInj(ref, { injector, optional: true }) ?? injector;
-
-          return runInInjectionContext(targetInjector, () => {
-            const refStack = inject(refStackToken);
-            refStack.push(ref);
-            try {
-              const instance = new R();
-              getInstanceMap(ref).set(R, instance);
-              return instance;
-            } finally {
-              refStack.pop();
-            }
-          });
-        });
+        return tryGetInstance<Element, Base>(inject(ViewContainerRef).element.nativeElement, Base);
       };
     }
 
-    Object.defineProperty(R, 'name', { value: base.name });
-    Object.defineProperty(R.prototype, Symbol.toStringTag, {
+    Object.defineProperty(Base, 'name', { value: base.name });
+    Object.defineProperty(Base.prototype, Symbol.toStringTag, {
       value: `${base.name}_Resolvable`,
       configurable: true,
     });
 
-    return R;
+    return Base;
   };
 }
 
-function getReference(refFn: NonNullable<ResolvableOptions['ref']>): object | null {
-  return isClass(refFn) ? inject(refFn) : isFunction(refFn) ? refFn() : inject(refFn);
+const EMBEDDED_VIEW_INJECTOR = 20;
+
+function traverseVcr<T extends object>(vcr: ViewContainerRef, type: Type<T>): T | null {
+  const instance = tryGetInstance<Element, T>(vcr.element.nativeElement, type);
+  if (instance) {
+    return instance;
+  }
+
+  const emInj = (vcr as any)._hostLView?.[EMBEDDED_VIEW_INJECTOR] as Injector | null;
+  if (emInj) {
+    const emVcr = runInInjectionContext(emInj, () => inject(ViewContainerRef, { optional: true }));
+    if (emVcr) {
+      return traverseVcr(emVcr, type);
+    }
+  }
+
+  const parent = vcr.parentInjector?.get(ViewContainerRef, null);
+  if (parent) {
+    return traverseVcr(parent, type);
+  }
+
+  return null;
 }
 
-const RESOLVABLE_INSTANCE_CACHE = new InjectionToken('RESOLVABLE_INSTANCE_CACHE', {
-  factory: () => new WeakMap<object, Map<Type<any>, any>>(),
+const INSTANCES = new InjectionToken('RESOLVABLE_INSTANCES', {
+  factory: () => new WeakMap<object, Map<Type<object>, object>>(),
 });
 
-function getInstanceMap<T>(ref: object): Map<Type<T>, T> {
-  const cache = inject(RESOLVABLE_INSTANCE_CACHE);
-  let map = cache.get(ref);
-  if (!map) {
-    map = new Map();
-    cache.set(ref, map);
+function getInstancesMap<R extends object, T extends object>(ref: R): Map<Type<T>, T> {
+  const weakMap = inject(INSTANCES);
+  let iMap = weakMap.get(ref) as Map<Type<T>, T> | undefined;
+  if (!iMap) {
+    iMap = new Map<Type<T>, T>();
+    weakMap.set(ref, iMap);
   }
-  return map as Map<Type<T>, T>;
+  return iMap;
+}
+
+function tryGetInstance<R extends object, T extends object>(ref: R, type: Type<T>): T | null {
+  const map = getInstancesMap<R, T>(ref);
+  return map ? (map.has(type) ? (map.get(type) as T) : null) : null;
+}
+
+function setInstance<R extends object, T extends object>(ref: R, type: Type<T>, inst: T): T {
+  const map = getInstancesMap<R, T>(ref);
+  map.set(type, inst);
+  return inst;
+}
+
+function createInstance<R extends object, T extends object>(
+  inj: Injector,
+  ref: R,
+  type: Type<T>,
+): T {
+  const inst = untracked(() => runInInjectionContext(inj, () => new type()));
+  setInstance<R, T>(ref, type, inst);
+  return inst;
+}
+
+export function resolve<T extends object, R extends object>(
+  type: Type<T>,
+  options?: ResolverOptions<R> & { injector?: Injector | null | undefined },
+): T {
+  if (!isResolvable<R>(type)) {
+    throw new Error(`Type ${type.name} is not a resolvable type`);
+  }
+
+  return assertInjector(resolve, options?.injector, () => {
+    const vcr = inject(ViewContainerRef);
+
+    const { resolveIn, fallbackInjector } = {
+      ...type[RESOLVABLE].defaultOptions,
+      ...options,
+    };
+
+    if (!isFunction(resolveIn)) {
+      const el = vcr.element.nativeElement as Element;
+      const inst = resolveIn === 'host' ? tryGetInstance(el, type) : traverseVcr(vcr, type);
+      return inst ?? createInstance(vcr.injector, el, type);
+    }
+
+    const ref = resolveIn();
+    const inst = tryGetInstance(ref, type);
+    if (inst) {
+      return inst;
+    }
+
+    let refInj = getInj(ref, { injector: vcr.injector, optional: true });
+    if (!refInj && !fallbackInjector) {
+      throw new Error(
+        `Proto: No injector found for given object: ${ref}. Cannot resolve instance. Consider using fallbackInjector: true.`,
+      );
+    }
+
+    refInj ??= vcr.injector;
+    return runInInjectionContext(refInj, () => createInstance<R, T>(refInj, ref, type));
+  });
 }

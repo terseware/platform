@@ -1,6 +1,14 @@
-import { computed, Directive, effect, inject, input, runInInjectionContext } from '@angular/core';
+import {
+  computed,
+  Directive,
+  effect,
+  inject,
+  Injector,
+  input,
+  runInInjectionContext,
+} from '@angular/core';
 import type { FieldState, ValidationError } from '@angular/forms/signals';
-import { ElementRenderer, injectElement, scoped } from '@terseware/utils';
+import { ElementRenderer, injectElement, runInScope } from '@terseware/utils';
 import { FieldCtx } from './field-ctx';
 import { installFieldDataAttributes, installFieldErrorDataAttributes } from './forms-di';
 
@@ -17,6 +25,7 @@ import { installFieldDataAttributes, installFieldErrorDataAttributes } from './f
   },
 })
 export class ProtoFieldError<T> {
+  readonly #injector = inject(Injector);
   readonly #element = injectElement();
   readonly #renderer = inject(ElementRenderer);
 
@@ -46,9 +55,9 @@ export class ProtoFieldError<T> {
   readonly visible = computed(() => this.contexts().some(context => context.errorsVisible()));
 
   constructor() {
-    effect(() => {
+    effect(onCleanup => {
       for (const context of this.contexts()) {
-        scoped(() => context.addError(this));
+        runInScope(this.#injector, onCleanup, () => context.addError(this));
       }
     });
 

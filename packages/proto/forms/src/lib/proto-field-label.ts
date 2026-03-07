@@ -4,13 +4,14 @@ import {
   effect,
   HOST_TAG_NAME,
   inject,
+  Injector,
   input,
   isDevMode,
   runInInjectionContext,
   signal,
 } from '@angular/core';
 import type { FieldTree } from '@angular/forms/signals';
-import { ElementRenderer, injectElement, scoped } from '@terseware/utils';
+import { ElementRenderer, injectElement, runInScope } from '@terseware/utils';
 import { FieldCtx } from './field-ctx';
 import { installFieldDataAttributes, installFieldErrorDataAttributes } from './forms-di';
 
@@ -23,6 +24,7 @@ import { installFieldDataAttributes, installFieldErrorDataAttributes } from './f
   },
 })
 export class ProtoFieldLabel<T> {
+  readonly #injector = inject(Injector);
   readonly #element = injectElement();
   readonly #renderer = inject(ElementRenderer);
   readonly #isNativeLabel = inject(HOST_TAG_NAME).toLowerCase() === 'label';
@@ -42,10 +44,10 @@ export class ProtoFieldLabel<T> {
   );
 
   constructor() {
-    effect(() => {
+    effect(onCleanup => {
       const contexts = this.contexts();
       for (const context of contexts) {
-        scoped(() => context.addLabel(this));
+        runInScope(this.#injector, onCleanup, () => context.addLabel(this));
       }
 
       const context = contexts[0];

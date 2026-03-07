@@ -76,6 +76,7 @@ export class Hover {
       this.#element,
       'touchstart',
       () => !this.disabled() && this.#onTouchStart(),
+      { passive: true },
     );
     this.#renderer.listen(
       this.#element,
