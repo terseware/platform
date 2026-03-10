@@ -22,7 +22,9 @@ describe('ProtoInteract', () => {
         }
       }
 
-      await render(`<button disabledBtn>Test</button>`, { imports: [DisabledBtn] });
+      await render(`<button disabledBtn>Test</button>`, {
+        imports: [DisabledBtn],
+      });
       expect(screen.getByRole('button')).toHaveAttribute('disabled');
     });
 

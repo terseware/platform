@@ -4,7 +4,6 @@ import {
   Component,
   computed,
   Directive,
-  DOCUMENT,
   effect,
   inject,
   Injector,
@@ -50,7 +49,6 @@ const sideFlip: Record<TooltipSide, TooltipSide> = {
 export class ProtoTooltipTrigger {
   readonly #vcr = inject(ViewContainerRef);
   readonly #injector = inject(Injector);
-  readonly #doc = inject(DOCUMENT);
   readonly #renderer = inject(ElementRenderer);
   readonly #hover = resolve(Hover);
   readonly #focus = resolve(Focus);
@@ -156,13 +154,13 @@ export class ProtoTooltipTrigger {
       },
     });
 
-    this.#renderer.listen(this.#doc, 'keydown', event => {
+    this.#renderer.listen('document', 'keydown', event => {
       if (event.key === 'Escape') {
         this.#set({ isInstant: true, tooltipOpen: false });
       }
     });
 
-    this.#renderer.listen(this.#doc, 'click', () => {
+    this.#renderer.listen('document', 'click', () => {
       this.#set({ isInstant: true, tooltipOpen: false });
     });
 

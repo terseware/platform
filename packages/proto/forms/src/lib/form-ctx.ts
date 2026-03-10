@@ -1,4 +1,4 @@
-import { computed, DOCUMENT, inject, Injector, runInInjectionContext, signal } from '@angular/core';
+import { computed, inject, Injector, runInInjectionContext, signal } from '@angular/core';
 import type { FormField } from '@angular/forms/signals';
 import { FORM_FIELD, FormRoot } from '@angular/forms/signals';
 import { Resolvable } from '@terseware/proto';
@@ -10,7 +10,6 @@ import { installFieldDataAttributes } from './forms-di';
 @Resolvable({ resolveIn: () => inject(FormRoot, { optional: true }) ?? inject(FORM_FIELD) })
 export class FormCtx<T> {
   readonly #injector = inject(Injector);
-  readonly #doc = inject(DOCUMENT);
   readonly #renderer = inject(ElementRenderer);
 
   readonly formRoot = computed(() =>
@@ -43,7 +42,7 @@ export class FormCtx<T> {
       installFieldDataAttributes(() => this.state());
     }
 
-    this.#renderer.listen(this.#doc, 'submit', event => {
+    this.#renderer.listen('document', 'submit', event => {
       const triedSubmit = isNode(event.target) && event.target.contains(this.element);
       if (triedSubmit) {
         this.#triedSubmitting.set(true);

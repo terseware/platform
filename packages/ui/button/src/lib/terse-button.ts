@@ -18,7 +18,7 @@ import { cva } from 'class-variance-authority';
 import type { ClassValue } from 'clsx';
 
 export const terseButtonVariants = cva(
-  "group/button data-focus-visible:ring-ring/70 inline-flex shrink-0 items-center justify-center rounded-md bg-clip-padding text-sm font-semibold whitespace-nowrap transition-colors duration-300 outline-none select-none data-disabled:pointer-events-none data-disabled:opacity-50 data-focus-visible:ring-3 data-press:duration-0 [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/button data-focus-visible:ring-ring/70 inline-flex shrink-0 items-center justify-center rounded-md bg-clip-padding text-sm font-semibold whitespace-nowrap outline-none select-none data-disabled:opacity-50 data-focus-visible:ring-3 data-press:duration-0 [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
@@ -79,7 +79,9 @@ export type TerseButtonVariants = VariantProps<typeof terseButtonVariants>;
   `,
 })
 export class TerseButton {
-  readonly disabled = input<boolean, BooleanInput>(false, {
+  readonly button = resolve(Button);
+
+  readonly disabled = input<boolean, BooleanInput>(this.button.interact.disabled(), {
     transform: booleanAttribute,
   });
 
@@ -87,7 +89,7 @@ export class TerseButton {
     transform: booleanAttribute,
   });
 
-  readonly tabIndex = input<number, NumberInput>(0, {
+  readonly tabIndex = input<number, NumberInput>(this.button.interact.tabIndex(), {
     transform: value => numberAttribute(value, 0),
   });
 
@@ -95,12 +97,11 @@ export class TerseButton {
   readonly type = input<string | null>();
 
   constructor() {
-    const button = resolve(Button);
-    signalBind(button.disabled, () => this.disabled() || this.loading());
-    signalBind(button.focusableWhenDisabled, () => this.loading());
-    signalBind(button.tabIndex, this.tabIndex);
-    signalBind(button.role, this.role);
-    signalBind(button.type, this.type);
+    signalBind(this.button.interact.disabled, () => this.disabled() || this.loading());
+    signalBind(this.button.interact.focusableWhenDisabled, () => this.loading());
+    signalBind(this.button.interact.tabIndex, this.tabIndex);
+    signalBind(this.button.role, this.role);
+    signalBind(this.button.type, this.type);
   }
 
   readonly terseButton = input<TerseButtonVariants['variant'] | ''>();

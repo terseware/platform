@@ -87,10 +87,10 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-[role='button']:not(:disabled),
-[role='menuitem']:not(:disabled),
-[data-slot='button']:not(:disabled),
-button:not(:disabled) {
+[role='button']:not([data-disabled]),
+[role='menuitem']:not([data-disabled]),
+[data-slot='button']:not([data-disabled]),
+button:not([data-disabled]) {
   @apply cursor-pointer;
 }
 
