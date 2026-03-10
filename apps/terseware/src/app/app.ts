@@ -73,14 +73,16 @@ import { TerseThemeToggle } from '@terseware/ui/theme';
       <br />
       <br />
       <div>
-        <proto-menu-trigger cdkDrag terseButton [protoMenuTrigger]="menuTrigger">
-          Menu
-        </proto-menu-trigger>
+        <button cdkDrag terseButton [protoMenuTrigger]="menuTrigger">Menu</button>
         <ng-template #menuTrigger>
           <proto-menu class="bg-surface-light shadow-s grid min-w-40 rounded-md border p-2">
             <proto-menu-item protoMenuItem [terseButton]="'menu-item'">Menu Item 1</proto-menu-item>
-            <proto-menu-item protoMenuItem [terseButton]="'menu-item'">Menu Item 2</proto-menu-item>
-            <proto-menu-item protoMenuItem [terseButton]="'menu-item'">Menu Item 3</proto-menu-item>
+            <proto-menu-item disabled protoMenuItem [terseButton]="'menu-item'"
+              >Menu Item 2</proto-menu-item
+            >
+            <proto-menu-item disabled protoMenuItem [terseButton]="'menu-item'"
+              >Menu Item 3</proto-menu-item
+            >
             <proto-menu-item protoMenuItem [terseButton]="'menu-item'">Menu Item 4</proto-menu-item>
             <proto-menu-item protoMenuItem [terseButton]="'menu-item'">Menu Item 5</proto-menu-item>
           </proto-menu>

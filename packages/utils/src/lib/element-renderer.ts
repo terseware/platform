@@ -4,7 +4,7 @@ import { disposable, injectorFallback } from './dispose';
 import { uniqueId } from './unique-id';
 import { isNull, isUndefined } from './validators';
 
-type GlobalEventTarget = 'window' | 'document' | 'body';
+export type GlobalEventTarget = 'window' | 'document' | 'body';
 
 type TargetEventMap<T> = T extends Window
   ? WindowEventMap
@@ -133,20 +133,20 @@ export class ElementRenderer {
     callback: (event: GlobalEventMap<T>[K]) => boolean | void,
     options?: ListenerOptions & { injector?: Injector | null | undefined },
   ): () => void;
-  listen<T extends Window | Document | Element, K extends keyof TargetEventMap<T> & string>(
+  listen<T extends Element, K extends keyof TargetEventMap<T> & string>(
     target: T,
     eventName: K,
     callback: (event: TargetEventMap<T>[K]) => boolean | void,
     options?: ListenerOptions & { injector?: Injector | null | undefined },
   ): () => void;
   listen(
-    target: GlobalEventTarget | Window | Document | Element,
+    target: GlobalEventTarget | Element,
     eventName: string,
     callback: (event: Event) => boolean | void,
     options?: ListenerOptions & { injector?: Injector | null | undefined },
   ): () => void;
   listen(
-    target: GlobalEventTarget | Window | Document | Element,
+    target: GlobalEventTarget | Element,
     eventName: string,
     callback: (event: Event) => boolean | void,
     options?: ListenerOptions & { injector?: Injector | null | undefined },

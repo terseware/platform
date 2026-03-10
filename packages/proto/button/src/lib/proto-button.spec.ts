@@ -262,17 +262,17 @@ describe('ProtoButton', () => {
     });
 
     it('should prevent click when focusable is true but disabled', async () => {
+      const stopSpy = vi.fn();
       await render(
-        `<button protoButton [disabled]="true" [focusableWhenDisabled]="true">Click me</button>`,
-        { imports: [ProtoButton] },
+        `<button protoButton [disabled]="true" [focusableWhenDisabled]="true" (click)="stopSpy($event)">Click me</button>`,
+        { imports: [ProtoButton], componentProperties: { stopSpy } },
       );
 
       const button = screen.getByRole('button');
       const clickEvent = new MouseEvent('click', { bubbles: true });
-      const stopSpy = vi.spyOn(clickEvent, 'stopImmediatePropagation');
 
       button.dispatchEvent(clickEvent);
-      expect(stopSpy).toHaveBeenCalled();
+      expect(stopSpy).not.toHaveBeenCalled();
     });
   });
 
@@ -350,16 +350,20 @@ describe('ProtoButton', () => {
     });
 
     it('should stop click event propagation when disabled', async () => {
-      await render(`<button protoButton [disabled]="true">Click me</button>`, {
-        imports: [ProtoButton],
-      });
+      const stopSpy = vi.fn();
+      await render(
+        `<button protoButton [disabled]="true" (click)="stopSpy($event)">Click me</button>`,
+        {
+          imports: [ProtoButton],
+          componentProperties: { stopSpy },
+        },
+      );
 
       const button = screen.getByRole('button');
       const clickEvent = new MouseEvent('click', { bubbles: true });
-      const stopSpy = vi.spyOn(clickEvent, 'stopImmediatePropagation');
 
       button.dispatchEvent(clickEvent);
-      expect(stopSpy).toHaveBeenCalled();
+      expect(stopSpy).not.toHaveBeenCalled();
     });
   });
 
@@ -696,86 +700,108 @@ describe('ProtoButton', () => {
 
   describe('mousedown event blocking', () => {
     it('should block mousedown when disabled', async () => {
-      await render(`<button protoButton [disabled]="true">Click me</button>`, {
+      const stopSpy = vi.fn();
+      await render(
+        `<button protoButton [disabled]="true" (mousedown)="stopSpy($event)">Click me</button>`,
+        {
+          imports: [ProtoButton],
+          componentProperties: { stopSpy },
+        },
+      );
+
+      const button = screen.getByRole('button');
+      const mousedownEvent = new MouseEvent('mousedown', { bubbles: true });
+
+      button.dispatchEvent(mousedownEvent);
+      expect(stopSpy).not.toHaveBeenCalled();
+    });
+
+    it('should allow mousedown when not disabled', async () => {
+      const stopSpy = vi.fn();
+      await render(`<button protoButton (mousedown)="stopSpy($event)">Click me</button>`, {
         imports: [ProtoButton],
+        componentProperties: { stopSpy },
       });
 
       const button = screen.getByRole('button');
       const mousedownEvent = new MouseEvent('mousedown', { bubbles: true });
-      const stopSpy = vi.spyOn(mousedownEvent, 'stopImmediatePropagation');
 
       button.dispatchEvent(mousedownEvent);
       expect(stopSpy).toHaveBeenCalled();
-    });
-
-    it('should allow mousedown when not disabled', async () => {
-      await render(`<button protoButton>Click me</button>`, { imports: [ProtoButton] });
-
-      const button = screen.getByRole('button');
-      const mousedownEvent = new MouseEvent('mousedown', { bubbles: true });
-      const stopSpy = vi.spyOn(mousedownEvent, 'stopImmediatePropagation');
-
-      button.dispatchEvent(mousedownEvent);
-      expect(stopSpy).not.toHaveBeenCalled();
     });
   });
 
   describe('keyup event blocking', () => {
     it('should block keyup when disabled', async () => {
-      await render(`<div protoButton [disabled]="true">Custom</div>`, { imports: [ProtoButton] });
+      const stopSpy = vi.fn();
+      await render(`<div protoButton [disabled]="true" (keyup)="stopSpy($event)">Custom</div>`, {
+        imports: [ProtoButton],
+        componentProperties: { stopSpy },
+      });
 
       const div = screen.getByRole('button');
       const keyupEvent = new KeyboardEvent('keyup', { key: ' ', bubbles: true });
-      const stopSpy = vi.spyOn(keyupEvent, 'stopImmediatePropagation');
-
-      div.dispatchEvent(keyupEvent);
-      expect(stopSpy).toHaveBeenCalled();
-    });
-
-    it('should allow keyup when not disabled', async () => {
-      await render(`<div protoButton>Custom</div>`, { imports: [ProtoButton] });
-
-      const div = screen.getByRole('button');
-      const keyupEvent = new KeyboardEvent('keyup', { key: ' ', bubbles: true });
-      const stopSpy = vi.spyOn(keyupEvent, 'stopImmediatePropagation');
 
       div.dispatchEvent(keyupEvent);
       expect(stopSpy).not.toHaveBeenCalled();
+    });
+
+    it('should allow keyup when not disabled', async () => {
+      const stopSpy = vi.fn();
+      await render(`<div protoButton (keyup)="stopSpy($event)">Custom</div>`, {
+        imports: [ProtoButton],
+        componentProperties: { stopSpy },
+      });
+
+      const div = screen.getByRole('button');
+      const keyupEvent = new KeyboardEvent('keyup', { key: ' ', bubbles: true });
+
+      div.dispatchEvent(keyupEvent);
+      expect(stopSpy).toHaveBeenCalled();
     });
   });
 
   describe('Tab key handling when disabled', () => {
     it('should allow tabbing away from disabled button to prevent focus trap', async () => {
-      await render(`<div protoButton [disabled]="true">Custom</div>`, { imports: [ProtoButton] });
+      const stopSpy = vi.fn();
+      await render(`<div protoButton [disabled]="true" (keydown)="stopSpy($event)">Custom</div>`, {
+        imports: [ProtoButton],
+        componentProperties: { stopSpy },
+      });
 
       const div = screen.getByRole('button');
       const tabEvent = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true });
-      const stopSpy = vi.spyOn(tabEvent, 'preventDefault');
 
       div.dispatchEvent(tabEvent);
       expect(stopSpy).not.toHaveBeenCalled();
     });
 
     it('should block Space key when disabled', async () => {
-      await render(`<div protoButton [disabled]="true">Custom</div>`, { imports: [ProtoButton] });
+      const stopSpy = vi.fn();
+      await render(`<div protoButton [disabled]="true" (keydown)="stopSpy($event)">Custom</div>`, {
+        imports: [ProtoButton],
+        componentProperties: { stopSpy },
+      });
 
       const div = screen.getByRole('button');
       const spaceEvent = new KeyboardEvent('keydown', { key: ' ', bubbles: true });
-      const stopSpy = vi.spyOn(spaceEvent, 'stopImmediatePropagation');
 
       div.dispatchEvent(spaceEvent);
-      expect(stopSpy).toHaveBeenCalled();
+      expect(stopSpy).not.toHaveBeenCalled();
     });
 
     it('should block Enter key when disabled', async () => {
-      await render(`<div protoButton [disabled]="true">Custom</div>`, { imports: [ProtoButton] });
+      const stopSpy = vi.fn();
+      await render(`<div protoButton [disabled]="true" (keydown)="stopSpy($event)">Custom</div>`, {
+        imports: [ProtoButton],
+        componentProperties: { stopSpy },
+      });
 
       const div = screen.getByRole('button');
       const enterEvent = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true });
-      const stopSpy = vi.spyOn(enterEvent, 'stopImmediatePropagation');
 
       div.dispatchEvent(enterEvent);
-      expect(stopSpy).toHaveBeenCalled();
+      expect(stopSpy).not.toHaveBeenCalled();
     });
   });
 
@@ -1024,31 +1050,35 @@ describe('ProtoButton', () => {
 
   describe('bubbled event handling', () => {
     it('should block bubbled keydown from children when disabled', async () => {
-      await render(`<div protoButton [disabled]="true"><input type="text" /></div>`, {
-        imports: [ProtoButton],
-      });
+      const stopSpy = vi.fn();
+      await render(
+        `<div protoButton [disabled]="true" (keydown)="stopSpy($event)"><input type="text" /></div>`,
+        {
+          imports: [ProtoButton],
+          componentProperties: { stopSpy },
+        },
+      );
 
       const input = screen.getByRole('textbox');
       const event = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true });
-      const stopSpy = vi.spyOn(event, 'stopImmediatePropagation');
 
       input.dispatchEvent(event);
-      expect(stopSpy).toHaveBeenCalled();
+      expect(stopSpy).not.toHaveBeenCalled();
     });
 
     it('should block bubbled click from children when disabled', async () => {
+      const stopSpy = vi.fn();
       const container = await render(
-        `<div protoButton [disabled]="true"><span>Click me</span></div>`,
-        { imports: [ProtoButton] },
+        `<div protoButton [disabled]="true" (click)="stopSpy($event)"><span>Click me</span></div>`,
+        { imports: [ProtoButton], componentProperties: { stopSpy } },
       );
 
       const span = container.debugElement.query(By.css('span'));
       const event = new MouseEvent('click', { bubbles: true });
       const preventSpy = vi.spyOn(event, 'preventDefault');
-      const stopSpy = vi.spyOn(event, 'stopImmediatePropagation');
 
       span.nativeElement.dispatchEvent(event);
-      expect(stopSpy).toHaveBeenCalled();
+      expect(stopSpy).not.toHaveBeenCalled();
       expect(preventSpy).toHaveBeenCalled();
     });
   });
@@ -1178,17 +1208,13 @@ describe('ProtoButton', () => {
 
     it('should block click on disabled anchor with href', async () => {
       const handleClick = vi.fn();
-      const container = await render(
+      const { container } = await render(
         `<a protoButton href="/dashboard" [disabled]="true" (click)="onClick()">Dashboard</a>`,
         { imports: [ProtoButton], componentProperties: { onClick: handleClick } },
       );
 
-      const link = container.debugElement.query(By.css('a')).nativeElement;
-      const clickEvent = new MouseEvent('click', { bubbles: true });
-      const stopSpy = vi.spyOn(clickEvent, 'stopImmediatePropagation');
-
-      link.dispatchEvent(clickEvent);
-      expect(stopSpy).toHaveBeenCalled();
+      fireEvent.click(container);
+      expect(handleClick).not.toHaveBeenCalled();
     });
 
     it('should support focusable on anchor with href', async () => {

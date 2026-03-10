@@ -1,4 +1,4 @@
-import { DOCUMENT, inject, Injector, signal } from '@angular/core';
+import { inject, Injector, signal } from '@angular/core';
 import { Resolvable } from '@terseware/proto';
 import { ElementRenderer, injectElement, isomorphicEffect, onDestroy } from '@terseware/utils';
 
@@ -7,7 +7,6 @@ export class Press {
   readonly #injector = inject(Injector);
   readonly #element = injectElement();
   readonly #renderer = inject(ElementRenderer);
-  readonly #doc = inject(DOCUMENT);
 
   readonly disabled = signal(false);
 
@@ -38,9 +37,9 @@ export class Press {
       disposableListeners.forEach(dispose => dispose());
       this.#isPressed.set(true);
       disposableListeners = [
-        this.#renderer.listen(this.#doc, 'pointerup', () => reset(), { injector: this.#injector }),
+        this.#renderer.listen('document', 'pointerup', () => reset(), { injector: this.#injector }),
         this.#renderer.listen(
-          this.#doc,
+          'document',
           'pointermove',
           event =>
             this.#element !== event.target &&
@@ -48,7 +47,7 @@ export class Press {
             reset(),
           { injector: this.#injector },
         ),
-        this.#renderer.listen(this.#doc, 'pointercancel', () => reset(), {
+        this.#renderer.listen('document', 'pointercancel', () => reset(), {
           injector: this.#injector,
         }),
       ];

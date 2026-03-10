@@ -1,17 +1,14 @@
-import { computed, inject, signal } from '@angular/core';
-import { Resolvable } from '@terseware/proto';
-import {
-  ElementRenderer,
-  injectElement,
-  isomorphicEffect,
-  supportsDisabledAttribute,
-} from '@terseware/utils';
+import { computed, signal } from '@angular/core';
+import { Host, Resolvable, resolve } from '@terseware/proto';
+import { supportsDisabledAttribute } from '@terseware/utils';
 
 @Resolvable()
 export class Interact {
-  readonly #element = injectElement();
-  readonly #renderer = inject(ElementRenderer);
-  readonly #nativeDisabled = supportsDisabledAttribute(this.#element);
+  readonly #host = resolve(Host);
+
+  get #nativeDisabled(): boolean {
+    return supportsDisabledAttribute(this.#host.element);
+  }
 
   readonly disabled = signal(false);
   readonly focusableWhenDisabled = signal(false);
@@ -21,58 +18,36 @@ export class Interact {
   readonly softDisabled = computed(() => this.disabled() && this.focusableWhenDisabled());
 
   constructor() {
-    isomorphicEffect({
-      write: () =>
-        this.#renderer.setAttr(this.#element, 'data-disabled', this.disabled() ? '' : null),
-    });
-
-    isomorphicEffect({
-      write: () =>
-        this.#renderer.setAttr(
-          this.#element,
-          'data-disabled-focusable',
-          this.softDisabled() ? '' : null,
-        ),
-    });
+    this.#host.bindAttr('data-disabled', () => (this.disabled() ? '' : null));
+    this.#host.bindAttr('data-disabled-focusable', () => (this.softDisabled() ? '' : null));
 
     if (this.#nativeDisabled) {
-      isomorphicEffect({
-        write: () =>
-          this.#renderer.setAttr(this.#element, 'disabled', this.hardDisabled() ? '' : null),
-      });
+      this.#host.bindAttr('disabled', () => (this.hardDisabled() ? '' : null));
     }
 
-    isomorphicEffect({
-      earlyRead: () => {
-        let tabIndex = this.tabIndex();
-        if (!this.#nativeDisabled && this.disabled()) {
-          tabIndex = this.focusableWhenDisabled() ? tabIndex : -1;
-        }
-        return `${tabIndex}`;
-      },
-      write: tabIndex => this.#renderer.setAttr(this.#element, 'tabindex', tabIndex()),
-    });
-
-    isomorphicEffect({
-      earlyRead: () => {
-        if (
-          (this.#nativeDisabled && this.focusableWhenDisabled()) ||
-          (!this.#nativeDisabled && this.disabled())
-        ) {
-          return `${this.disabled()}`;
-        }
-        return null;
-      },
-      write: ariaDisabled => this.#renderer.setAttr(this.#element, 'aria-disabled', ariaDisabled()),
-    });
-
-    this.#renderer.listen(this.#element, 'keydown', event => {
-      if (this.disabled()) {
-        if (event.key !== 'Tab') {
-          event.preventDefault();
-        }
-        event.stopImmediatePropagation();
+    this.#host.bindAttr('tabindex', () => {
+      let tabIndex = this.tabIndex();
+      if (!this.#nativeDisabled && this.disabled()) {
+        tabIndex = this.focusableWhenDisabled() ? tabIndex : -1;
       }
+      return `${tabIndex}`;
+    });
+
+    this.#host.bindAttr('aria-disabled', () => {
+      if (
+        (this.#nativeDisabled && this.focusableWhenDisabled()) ||
+        (!this.#nativeDisabled && this.disabled())
+      ) {
+        return `${this.disabled()}`;
+      }
+      return null;
+    });
+
+    this.#host.on('keydown', (next, event) => {
+      if (this.softDisabled() && event.key !== 'Tab') {
+        event.preventDefault();
+      }
+      next(event);
     });
   }
 }
