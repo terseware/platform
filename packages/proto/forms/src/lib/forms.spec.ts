@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import type { FieldState } from '@angular/forms/signals';
 import { form, FormField, FormRoot, required } from '@angular/forms/signals';
 import { By } from '@angular/platform-browser';
-import { Interact } from '@terseware/proto/interact';
+import { InteractBehavior } from '@terseware/proto/interact';
 import { fireEvent, render } from '@testing-library/angular';
 import { PROTO_FIELD_ERROR_STRATEGY } from './forms-di';
 import { resolver } from './forms-resolver';
@@ -790,7 +790,7 @@ describe('Forms', () => {
       class TestHost {
         readonly model = signal({ name: 'James', tabIndex: 5 });
         readonly form = form(this.model, path => {
-          resolver(path.name, Interact, ctx => {
+          resolver(path.name, InteractBehavior, ctx => {
             ctx.instance.tabIndex.set(ctx.stateOf(path.tabIndex).value());
           });
         });
@@ -822,10 +822,10 @@ describe('Forms', () => {
       class TestHost {
         readonly model = signal({ name: 'James', tabIndex: 3 });
         readonly form = form(this.model, path => {
-          resolver(path.name, Interact, ctx => {
+          resolver(path.name, InteractBehavior, ctx => {
             ctx.instance.tabIndex.set(ctx.stateOf(path.tabIndex).value());
           });
-          resolver(path.name, Interact, ctx => {
+          resolver(path.name, InteractBehavior, ctx => {
             ctx.instance.disabled.set(true);
             ctx.instance.focusableWhenDisabled.set(true);
           });

@@ -1,5 +1,5 @@
 import type { BooleanInput } from '@angular/cdk/coercion';
-import { booleanAttribute, Directive, input, output } from '@angular/core';
+import { booleanAttribute, Directive, inject, input, output } from '@angular/core';
 import { onChange, signalBind } from '@terseware/utils';
 import { Intersect } from './intersect';
 

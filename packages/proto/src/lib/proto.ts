@@ -12,17 +12,16 @@ import {
   runInInjectionContext,
   untracked,
   ViewContainerRef,
+  ɵgetLContext,
 } from '@angular/core';
 import { EVENT_MANAGER_PLUGINS, EventManager } from '@angular/platform-browser';
 import {
   disposable,
-  getInj,
   injectElement,
   injectorFallback,
   isNull,
   isomorphicEffect,
   isUndefined,
-  setCreateInjFn,
   SignalWeakMap,
   uniqueId,
 } from '@terseware/utils';
@@ -90,9 +89,53 @@ function toProtoEvent<E extends Event>(event: E): ProtoEvent<E> {
   return event as ProtoEvent<E>;
 }
 
+let createInjFn: ((tNode: any, lView: any) => Injector) | null = null;
+
+function setCreateElInjFn(injector: Injector): void {
+  if (createInjFn) {
+    return;
+  }
+
+  if (!('_tNode' in injector && '_lView' in injector)) {
+    throw new Error(`Not a NodeInjector`);
+  }
+
+  const proto = Object.getPrototypeOf(injector);
+  createInjFn = (tNode, lView) => {
+    const nodeInj = Object.create(proto);
+    nodeInj._tNode = tNode;
+    nodeInj._lView = lView;
+    return nodeInj;
+  };
+}
+
+function getElementInjector(element: Element): Injector {
+  const context = getLContext(element);
+
+  if (!context?.lView) {
+    throw new Error(`Proto: No LView found for given object: ${element}. Cannot resolve injector.`);
+  }
+
+  if (!createInjFn) {
+    throw new Error(`Proto: No createInjFn found. Cannot resolve injector.`);
+  }
+
+  const { lView, nodeIndex } = context;
+  const tNode = lView[1].data[nodeIndex];
+  return createInjFn(tNode, lView);
+}
+
+function getLContext(instance: object) {
+  try {
+    return ɵgetLContext(instance);
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Per-element owner of all {@link Behavior} instances and event pipelines.
- * One instance per DOM element, resolved via {@link ProtoHost.__NG_ELEMENT_ID__}.
+ * One instance per DOM element.
  */
 export class ProtoHost {
   readonly #vcr = inject(ViewContainerRef);
@@ -106,20 +149,20 @@ export class ProtoHost {
   static for<T>(element: Element, type: Type<T>): T;
   static for(element: Element): ProtoHost;
   static for<T>(element: Element, type?: Type<T>): ProtoHost | T {
-    const inj = getInj(element);
+    const inj = getElementInjector(element);
     const contexts = inj.get(PROTO_HOSTS);
     let instance = contexts.get(element);
     if (!instance) {
-      instance = runInInjectionContext(inj, () => new ProtoHost());
+      instance = untracked(() => runInInjectionContext(inj, () => new ProtoHost()));
       contexts.set(element, instance);
     }
     return type ? instance.resolve<T>(type) : instance;
   }
 
-  static __NG_ELEMENT_ID__ = (): ProtoHost => {
+  protected static __NG_ELEMENT_ID__ = (): ProtoHost => {
     const element = injectElement();
-    setCreateInjFn(inject(Injector));
     const contexts = inject(PROTO_HOSTS);
+    setCreateElInjFn(inject(Injector));
     let instance = contexts.get(element);
     if (!instance) {
       instance = new ProtoHost();
