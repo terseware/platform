@@ -1,8 +1,50 @@
 import { FocusMonitor } from '@angular/cdk/a11y';
+import type { BooleanInput, NumberInput } from '@angular/cdk/coercion';
+import { booleanAttribute, Directive, inject, input, numberAttribute } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
+import { Focus } from '@terseware/proto/focus';
+import { Hover } from '@terseware/proto/hover';
+import { Press } from '@terseware/proto/press';
+import { signalBind } from '@terseware/utils';
 import { fireEvent, render, screen } from '@testing-library/angular';
-import { ProtoButton } from './proto-button';
+import { ButtonBehavior } from './button.behavior';
+
+@Directive({ selector: '[protoButton]', exportAs: 'protoButton' })
+class ProtoButton {
+  readonly button = inject(ButtonBehavior);
+  readonly hover = inject(Hover);
+  readonly press = inject(Press);
+  readonly focus = inject(Focus);
+
+  readonly disabled = input<boolean, BooleanInput>(this.button.interact.disabled(), {
+    transform: booleanAttribute,
+  });
+
+  readonly focusableWhenDisabled = input<boolean, BooleanInput>(
+    this.button.interact.focusableWhenDisabled(),
+    { transform: booleanAttribute },
+  );
+
+  readonly tabIndex = input<number, NumberInput>(this.button.interact.tabIndex(), {
+    transform: value => numberAttribute(value, this.button.interact.tabIndex()),
+  });
+
+  readonly role = input<string | null>(this.button.role());
+  readonly type = input<string | null>(this.button.type());
+
+  constructor() {
+    signalBind(this.button.interact.disabled, this.disabled);
+    signalBind(this.button.interact.focusableWhenDisabled, this.focusableWhenDisabled);
+    signalBind(this.button.interact.tabIndex, this.tabIndex);
+    signalBind(this.button.role, this.role);
+    signalBind(this.button.type, this.type);
+
+    signalBind(this.hover.disabled, this.button.interact.disabled);
+    signalBind(this.press.disabled, this.button.interact.disabled);
+    signalBind(this.focus.disabled, this.button.interact.hardDisabled); // Allow focus when focusable when disabled is true
+  }
+}
 
 describe('ProtoButton', () => {
   it('should set the disabled attribute when disabled', async () => {
@@ -316,8 +358,8 @@ describe('ProtoButton', () => {
         imports: [ProtoButton],
       });
 
-      const input = screen.getByRole('button');
-      expect(input.getAttribute('role')).toBeNull();
+      const inp = screen.getByRole('button');
+      expect(inp.getAttribute('role')).toBeNull();
     });
 
     it('should not add role to input[type="submit"]', async () => {
@@ -325,15 +367,15 @@ describe('ProtoButton', () => {
         imports: [ProtoButton],
       });
 
-      const input = screen.getByRole('button');
-      expect(input.getAttribute('role')).toBeNull();
+      const inp = screen.getByRole('button');
+      expect(inp.getAttribute('role')).toBeNull();
     });
 
     it('should not add role to input[type="reset"]', async () => {
       await render(`<input protoButton type="reset" value="Reset" />`, { imports: [ProtoButton] });
 
-      const input = screen.getByRole('button');
-      expect(input.getAttribute('role')).toBeNull();
+      const inp = screen.getByRole('button');
+      expect(inp.getAttribute('role')).toBeNull();
     });
   });
 
@@ -523,8 +565,8 @@ describe('ProtoButton', () => {
         imports: [ProtoButton],
       });
 
-      const input = screen.getByRole('button');
-      expect(input.tagName).toBe('INPUT');
+      const inp = screen.getByRole('button');
+      expect(inp.tagName).toBe('INPUT');
     });
 
     it('should work with input[type="submit"] elements', async () => {
@@ -532,8 +574,8 @@ describe('ProtoButton', () => {
         imports: [ProtoButton],
       });
 
-      const input = screen.getByRole('button');
-      expect(input.tagName).toBe('INPUT');
+      const inp = screen.getByRole('button');
+      expect(inp.tagName).toBe('INPUT');
     });
   });
 
@@ -1059,10 +1101,10 @@ describe('ProtoButton', () => {
         },
       );
 
-      const input = screen.getByRole('textbox');
+      const inp = screen.getByRole('textbox');
       const event = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true });
 
-      input.dispatchEvent(event);
+      inp.dispatchEvent(event);
       expect(stopSpy).not.toHaveBeenCalled();
     });
 

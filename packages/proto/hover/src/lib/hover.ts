@@ -1,5 +1,5 @@
 import { DOCUMENT, inject, Injectable, signal } from '@angular/core';
-import { Resolvable } from '@terseware/proto';
+import { Behavior } from '@terseware/proto';
 import { ElementRenderer, injectElement, isomorphicEffect } from '@terseware/utils';
 
 // ── Global touch detection ──────────────────────────────────────────────────
@@ -42,7 +42,7 @@ class GlobalPointerEvents {
   }
 }
 
-@Resolvable()
+@Behavior()
 export class Hover {
   readonly #element = injectElement();
   readonly #renderer = inject(ElementRenderer);

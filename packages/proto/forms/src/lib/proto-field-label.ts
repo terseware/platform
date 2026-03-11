@@ -7,10 +7,10 @@ import {
   Injector,
   input,
   isDevMode,
-  runInInjectionContext,
   signal,
 } from '@angular/core';
 import type { FieldTree } from '@angular/forms/signals';
+import { ProtoHost } from '@terseware/proto';
 import { ElementRenderer, injectElement, runInScope } from '@terseware/utils';
 import { FieldCtx } from './field-ctx';
 import { installFieldDataAttributes, installFieldErrorDataAttributes } from './forms-di';
@@ -40,7 +40,7 @@ export class ProtoFieldLabel<T> {
     this.field()()
       .fieldTree()
       .formFieldBindings()
-      .map(field => runInInjectionContext(field.injector, () => inject(FieldCtx<T>))),
+      .map(field => ProtoHost.for(field.element, FieldCtx<T>)),
   );
 
   constructor() {

@@ -75,7 +75,7 @@ This matches how `Hover` guards every listener callback with `!this.disabled()`.
 
 **File:** `packages/proto/press/src/lib/proto-press.ts` line 11
 
-**Problem:** `ProtoPress` declares `providers: [Press]` in its decorator, but no other directive does this. `Press` is already decorated with `@Resolvable()`, which handles DI resolution. The explicit `providers` entry creates a new instance per directive, breaking the shared resolution pattern that `Focus`, `Hover`, and `Interact` rely on.
+**Problem:** `ProtoPress` declares `providers: [Press]` in its decorator, but no other directive does this. `Press` is already decorated with `@Behavior()`, which handles DI resolution. The explicit `providers` entry creates a new instance per directive, breaking the shared resolution pattern that `Focus`, `Hover`, and `Interact` rely on.
 
 **Fix:** Remove `providers: [Press]` from the directive decorator.
 
@@ -185,12 +185,12 @@ packages/proto/<primitive>/
   src/
     index.ts                        # Public API exports
     lib/
-      <primitive>.ts                # @Resolvable() state class
+      <primitive>.ts                # @Behavior() state class
       proto-<primitive>.ts          # Angular directive (thin wrapper)
       proto-<primitive>.spec.ts     # Tests for the directive
 ```
 
-- State class: `@Resolvable()`, uses `bindable()` for configurable properties, `injectElement()` for DOM access, `isomorphicEffect()` for DOM writes, `ElementRenderer` for safe DOM manipulation.
+- State class: `@Behavior()`, uses `bindable()` for configurable properties, `injectElement()` for DOM access, `isomorphicEffect()` for DOM writes, `ElementRenderer` for safe DOM manipulation.
 - Directive: `@Directive`, uses `inject(<StateClass>)`, forwards `input()` signals to state class via `state.prop.set(this.prop)`, exposes `output()` events via `onChange()`.
 
 ### 3.3 Standard data attributes
@@ -256,7 +256,7 @@ Multiple bare `setTimeout(() => this.tooltipOpen.set(...))` calls without storin
 
 Before adding new primitives, establish documentation for:
 
-1. **Architecture overview** -- Explain the Resolvable + Directive two-tier pattern, when to use each, and how composition works
+1. **Architecture overview** -- Explain the Behavior + Directive two-tier pattern, when to use each, and how composition works
 2. **Utils API reference** -- Document `bindable`, `scoped`, `disposable`, `ElementRenderer`, `isomorphicEffect`, and `onChange` with usage examples
 3. **Contributor guide** -- The standard file structure (section 3.2), naming conventions (section 3.1), and data attribute conventions (section 3.3)
 4. **Accessibility baseline** -- Document which ARIA patterns each primitive implements and link to the relevant WAI-ARIA Authoring Practices

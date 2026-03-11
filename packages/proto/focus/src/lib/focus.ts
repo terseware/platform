@@ -2,7 +2,7 @@ import type { FocusOrigin } from '@angular/cdk/a11y';
 import { FocusMonitor } from '@angular/cdk/a11y';
 import { computed, inject, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { Resolvable } from '@terseware/proto';
+import { Behavior } from '@terseware/proto';
 import { ElementRenderer, injectElement, isNull, isomorphicEffect } from '@terseware/utils';
 import { combineLatest, of, switchMap } from 'rxjs';
 
@@ -38,7 +38,7 @@ function shouldShowFocusVisible(origin: FocusOrigin, element: HTMLElement): bool
   return alwaysShowFocus(element);
 }
 
-@Resolvable()
+@Behavior()
 export class Focus {
   readonly #element = injectElement();
   readonly #renderer = inject(ElementRenderer);

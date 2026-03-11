@@ -1,55 +1,51 @@
-import { inject, Injector, ɵgetLContext } from '@angular/core';
-import { assertInjector } from 'ngxtension/assert-injector';
+import type { Injector } from '@angular/core';
+import { ɵgetLContext } from '@angular/core';
 
-// Cache NodeInjector prototype
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-let nodeInjProto: any | null = null;
+let createInjFn: ((tNode: any, lView: any) => Injector) | null = null;
+
+export function setCreateInjFn(injector: Injector): void {
+  if (createInjFn) {
+    return;
+  }
+
+  if (!('_tNode' in injector && '_lView' in injector)) {
+    throw new Error(`Not a NodeInjector`);
+  }
+
+  const proto = Object.getPrototypeOf(injector);
+  createInjFn = (tNode, lView) => {
+    const nodeInj = Object.create(proto);
+    nodeInj._tNode = tNode;
+    nodeInj._lView = lView;
+    return nodeInj;
+  };
+}
 
 /**
  * Get the injector for an instance.
  */
-export function getInj(
-  instance: object,
-  options: { injector?: Injector | null | undefined; optional: true },
-): Injector | null;
-export function getInj(
-  instance: object,
-  options?: { injector?: Injector | null | undefined; optional?: boolean },
-): Injector;
-export function getInj(
-  instance: object,
-  options?: { injector?: Injector | null | undefined; optional?: boolean },
-): Injector | null {
-  return assertInjector(getInj, options?.injector, () => {
-    const context = getLContext(instance);
-    if (!context?.lView) {
-      if (options?.optional) {
-        return null;
-      }
-      throw new Error(
-        `Proto: No LView found for given object: ${instance}. Cannot resolve injector.`,
-      );
+export function getInj(instance: object, options: { optional: true }): Injector | null;
+export function getInj(instance: object, options?: { optional?: boolean }): Injector;
+export function getInj(instance: object, options?: { optional?: boolean }): Injector | null {
+  const context = getLContext(instance);
+  if (!context?.lView) {
+    if (options?.optional) {
+      return null;
     }
+    throw new Error(
+      `Proto: No LView found for given object: ${instance}. Cannot resolve injector.`,
+    );
+  }
 
-    const { lView, nodeIndex } = context;
-    const tNode = lView[1].data[nodeIndex];
+  const { lView, nodeIndex } = context;
+  const tNode = lView[1].data[nodeIndex];
 
-    const currInj = options?.injector ?? inject(Injector);
+  if (!createInjFn) {
+    throw new Error(`Proto: No createInjFn found. Cannot resolve injector.`);
+  }
 
-    // NodeInjector is the only Injector implementation with _tNode/_lView.
-    // Property names are stable — @angular/core ships unminified fesm2022.
-    if ('_tNode' in currInj && '_lView' in currInj) {
-      const nodeInj = Object.create((nodeInjProto ??= Object.getPrototypeOf(currInj)));
-      nodeInj._tNode = tNode;
-      nodeInj._lView = lView;
-      return nodeInj;
-    }
-
-    // Fallback: we're inside an environment injector context (e.g. service constructor,
-    // or runInInjectionContext with an EnvironmentInjector).
-    // lView[9] is the env injector — node-scoped tokens won't resolve.
-    return lView[9];
-  });
+  return createInjFn(tNode, lView);
 }
 
 function getLContext(instance: object) {

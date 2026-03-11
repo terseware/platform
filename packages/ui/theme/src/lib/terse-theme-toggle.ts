@@ -1,11 +1,20 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import type { BooleanInput } from '@angular/cdk/coercion';
+import {
+  booleanAttribute,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  input,
+} from '@angular/core';
 import { lucideMoon, lucideSun } from '@ng-icons/lucide';
-import { ProtoButton } from '@terseware/proto/button';
+import { ButtonBehavior } from '@terseware/proto/button';
 import type { TerseButtonVariants } from '@terseware/ui/button';
 import { terseButtonVariants } from '@terseware/ui/button';
 import { TerseIcon, toTerseIcon } from '@terseware/ui/icon';
 import { TerseTooltip } from '@terseware/ui/tooltip';
 import { cn } from '@terseware/ui/utils';
+import { signalBind } from '@terseware/utils';
 import type { ClassValue } from 'clsx';
 import { Theme } from './theme';
 
@@ -13,13 +22,7 @@ import { Theme } from './theme';
   selector: 'terse-theme-toggle',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TerseIcon],
-  hostDirectives: [
-    TerseTooltip,
-    {
-      directive: ProtoButton,
-      inputs: ['disabled', 'focusableWhenDisabled', 'tabIndex', 'role', 'type'],
-    },
-  ],
+  hostDirectives: [TerseTooltip],
   host: {
     'data-slot': 'button',
     '[class]': 'classValue()',
@@ -28,8 +31,13 @@ import { Theme } from './theme';
   template: `<svg [terseIcon]="terseIcon()"></svg><ng-content />`,
 })
 export class TerseThemeToggle {
-  readonly #tooltip = inject(TerseTooltip);
+  readonly button = inject(ButtonBehavior);
+  readonly tooltip = inject(TerseTooltip);
   readonly theme = inject(Theme);
+
+  readonly disabled = input<boolean, BooleanInput>(undefined, {
+    transform: booleanAttribute,
+  });
 
   readonly terseIcon = computed(() =>
     this.theme.theme() === 'dark'
@@ -46,6 +54,7 @@ export class TerseThemeToggle {
   );
 
   constructor() {
-    this.#tooltip.content.set('Toggle Theme');
+    signalBind(this.button.interact.disabled, this.disabled);
+    this.tooltip.content.set('Toggle Theme');
   }
 }

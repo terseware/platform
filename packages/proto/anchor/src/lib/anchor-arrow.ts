@@ -1,10 +1,10 @@
 import { afterRenderEffect, computed, inject, signal, untracked } from '@angular/core';
-import { Resolvable } from '@terseware/proto';
+import { Behavior } from '@terseware/proto';
 import { ElementRenderer, injectElement, isNumber, isomorphicEffect } from '@terseware/utils';
 
 export type AnchorArrowAlign = 'top' | 'bottom' | 'left' | 'right';
 
-@Resolvable()
+@Behavior()
 export class AnchorArrow {
   readonly #renderer = inject(ElementRenderer);
   readonly #element = injectElement();

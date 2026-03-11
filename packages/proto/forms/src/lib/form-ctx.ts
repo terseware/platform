@@ -1,13 +1,13 @@
 import { computed, inject, Injector, runInInjectionContext, signal } from '@angular/core';
 import type { FormField } from '@angular/forms/signals';
 import { FORM_FIELD, FormRoot } from '@angular/forms/signals';
-import { Resolvable } from '@terseware/proto';
+import { Behavior } from '@terseware/proto';
 import { disposable, ElementRenderer, injectElement, isNode } from '@terseware/utils';
 import { SignalSet } from 'ngxtension/collections';
 import type { FieldCtx } from './field-ctx';
 import { installFieldDataAttributes } from './forms-di';
 
-@Resolvable({ resolveIn: () => inject(FormRoot, { optional: true }) ?? inject(FORM_FIELD) })
+@Behavior()
 export class FormCtx<T> {
   readonly #injector = inject(Injector);
   readonly #renderer = inject(ElementRenderer);

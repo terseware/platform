@@ -3,7 +3,6 @@ import { httpResource } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, signal } from '@angular/core';
 import { form, FormField, FormRoot, required } from '@angular/forms/signals';
 import { RouterLink, RouterOutlet } from '@angular/router';
-import { ProtoButton } from '@terseware/proto/button';
 import {
   FormCtx,
   ProtoField,
@@ -12,7 +11,7 @@ import {
   ProtoFieldLabel,
   resolver,
 } from '@terseware/proto/forms';
-import { Interact } from '@terseware/proto/interact';
+import { InteractBehavior } from '@terseware/proto/interact';
 import { ProtoMenu, ProtoMenuItem, ProtoMenuTrigger } from '@terseware/proto/menu';
 import { TerseButton } from '@terseware/ui/button';
 import { TerseIcon, toTerseIcon } from '@terseware/ui/icon';
@@ -24,7 +23,6 @@ import { TerseThemeToggle } from '@terseware/ui/theme';
   imports: [
     FormField,
     FormRoot,
-    ProtoButton,
     ProtoFieldDescription,
     ProtoFieldError,
     ProtoFieldLabel,
@@ -43,7 +41,7 @@ import { TerseThemeToggle } from '@terseware/ui/theme';
   host: { class: 'contents' },
   template: `
     <header class="bg-surface flex h-16 items-center px-4 py-3">
-      <a class="inline-flex items-center" protoButton terseTooltip="Home" [routerLink]="['/']">
+      <a class="inline-flex items-center" terseTooltip="Home" [routerLink]="['/']">
         @if (logoIcon(); as logoIcon) {
           <svg class="text-primary size-8" fill="currentColor" [terseIcon]="logoIcon"></svg>
         }
@@ -108,7 +106,7 @@ export class App {
   readonly form = form(
     signal({ name: 'James', tabIndex: 0 }),
     path => {
-      resolver(path.tabIndex, Interact, ctx => {
+      resolver(path.tabIndex, InteractBehavior, ctx => {
         ctx.instance.tabIndex.set(ctx.value());
       });
       required(path.name, { message: 'Name is required' });

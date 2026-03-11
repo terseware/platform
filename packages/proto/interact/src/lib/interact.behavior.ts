@@ -1,10 +1,10 @@
-import { computed, signal } from '@angular/core';
-import { Host, Resolvable, resolve } from '@terseware/proto';
+import { computed, inject, signal } from '@angular/core';
+import { Behavior, ProtoHost } from '@terseware/proto';
 import { supportsDisabledAttribute } from '@terseware/utils';
 
-@Resolvable()
-export class Interact {
-  readonly #host = resolve(Host);
+@Behavior()
+export class InteractBehavior {
+  readonly #host = inject(ProtoHost);
 
   get #nativeDisabled(): boolean {
     return supportsDisabledAttribute(this.#host.element);
@@ -43,7 +43,7 @@ export class Interact {
       return null;
     });
 
-    this.#host.on('keydown', (next, event) => {
+    this.#host.on('keydown', (event, next) => {
       if (this.softDisabled() && event.key !== 'Tab') {
         event.preventDefault();
       }

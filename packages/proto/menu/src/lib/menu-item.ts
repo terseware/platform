@@ -1,18 +1,20 @@
 import { Directive, effect, inject } from '@angular/core';
-import { Host, Resolvable, resolve } from '@terseware/proto';
-import { Button } from '@terseware/proto/button';
+import { Behavior, ProtoHost } from '@terseware/proto';
+import { ButtonBehavior } from '@terseware/proto/button';
+import { Focus } from '@terseware/proto/focus';
 import { injectElement } from '@terseware/utils';
 import { MenuTrigger } from './menu-trigger';
 
 /** Debounce timer for typeahead search reset. */
 const TYPEAHEAD_DEBOUNCE_MS = 500;
 
-@Resolvable()
+@Behavior()
 export class MenuItem {
   readonly element = injectElement();
-  readonly #host = inject(Host);
-  readonly button = resolve(Button);
-  readonly ctx = resolve(MenuTrigger);
+  readonly #host = inject(ProtoHost);
+  readonly button = inject(ButtonBehavior);
+  readonly focus = inject(Focus);
+  readonly ctx = inject(MenuTrigger);
 
   readonly id = this.#host.id('menu-item');
 
@@ -31,11 +33,11 @@ export class MenuItem {
       this.button.interact.tabIndex.set(isActive ? 0 : -1);
     });
 
-    this.#host.bindAttr('data-active', () => (this.button.focus.isFocused() ? 'true' : null));
+    this.#host.bindAttr('data-active', () => (this.focus.isFocused() ? 'true' : null));
 
     this.#host.on('mouseup', () => this.#activate());
 
-    this.#host.on('keydown', (next, event) => {
+    this.#host.on('keydown', (event, next) => {
       switch (event.key) {
         case 'ArrowDown':
           this.ctx.focusNext();
@@ -127,5 +129,5 @@ export class MenuItem {
   exportAs: 'protoMenuItem',
 })
 export class ProtoMenuItem {
-  readonly item = resolve(MenuItem);
+  readonly item = inject(MenuItem);
 }

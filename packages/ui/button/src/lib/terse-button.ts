@@ -4,15 +4,18 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  inject,
   input,
   numberAttribute,
 } from '@angular/core';
 import { lucideLoaderCircle } from '@ng-icons/lucide';
-import { resolve } from '@terseware/proto';
-import { Button } from '@terseware/proto/button';
+import { ButtonBehavior } from '@terseware/proto/button';
+import { Focus } from '@terseware/proto/focus';
+import { Hover } from '@terseware/proto/hover';
+import { Press } from '@terseware/proto/press';
 import { TerseIcon, toTerseIcon } from '@terseware/ui/icon';
 import { cn } from '@terseware/ui/utils';
-import { signalBind } from '@terseware/utils';
+import { isUndefined, signalBind } from '@terseware/utils';
 import type { VariantProps } from 'class-variance-authority';
 import { cva } from 'class-variance-authority';
 import type { ClassValue } from 'clsx';
@@ -79,18 +82,21 @@ export type TerseButtonVariants = VariantProps<typeof terseButtonVariants>;
   `,
 })
 export class TerseButton {
-  readonly button = resolve(Button);
+  readonly button = inject(ButtonBehavior);
+  readonly hover = inject(Hover);
+  readonly press = inject(Press);
+  readonly focus = inject(Focus);
 
-  readonly disabled = input<boolean, BooleanInput>(this.button.interact.disabled(), {
+  readonly disabled = input<boolean, BooleanInput>(undefined, {
     transform: booleanAttribute,
   });
 
-  readonly loading = input<boolean, BooleanInput>(false, {
+  readonly loading = input<boolean, BooleanInput>(undefined, {
     transform: booleanAttribute,
   });
 
-  readonly tabIndex = input<number, NumberInput>(this.button.interact.tabIndex(), {
-    transform: value => numberAttribute(value, 0),
+  readonly tabIndex = input<number, NumberInput>(undefined, {
+    transform: value => (isUndefined(value) ? undefined : numberAttribute(value, 0)),
   });
 
   readonly role = input<string | null>();
@@ -102,6 +108,10 @@ export class TerseButton {
     signalBind(this.button.interact.tabIndex, this.tabIndex);
     signalBind(this.button.role, this.role);
     signalBind(this.button.type, this.type);
+
+    signalBind(this.hover.disabled, this.button.interact.disabled);
+    signalBind(this.press.disabled, this.button.interact.disabled);
+    signalBind(this.focus.disabled, this.button.interact.hardDisabled); // Allow focus when focusable when disabled is true
   }
 
   readonly terseButton = input<TerseButtonVariants['variant'] | ''>();

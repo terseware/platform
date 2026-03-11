@@ -1,5 +1,4 @@
 import { Directive, inject, input } from '@angular/core';
-import { resolve } from '@terseware/proto';
 import { AnchorArrow } from '@terseware/proto/anchor';
 import { signalBind } from '@terseware/utils';
 import { ProtoTooltip } from './proto-tooltip';
@@ -13,7 +12,7 @@ export class ProtoTooltipArrow {
   readonly #trigger = inject(ProtoTooltipTrigger);
   readonly #tooltip = inject(ProtoTooltip);
 
-  readonly #arrow = resolve(AnchorArrow);
+  readonly #arrow = inject(AnchorArrow);
   readonly left = this.#arrow.left;
   readonly top = this.#arrow.top;
 

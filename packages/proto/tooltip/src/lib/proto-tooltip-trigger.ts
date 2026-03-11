@@ -15,7 +15,6 @@ import {
   ViewContainerRef,
 } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
-import { resolve } from '@terseware/proto';
 import { Anchor } from '@terseware/proto/anchor';
 import { Focus } from '@terseware/proto/focus';
 import { Hover } from '@terseware/proto/hover';
@@ -50,11 +49,11 @@ export class ProtoTooltipTrigger {
   readonly #vcr = inject(ViewContainerRef);
   readonly #injector = inject(Injector);
   readonly #renderer = inject(ElementRenderer);
-  readonly #hover = resolve(Hover);
-  readonly #focus = resolve(Focus);
+  readonly #hover = inject(Hover);
+  readonly #focus = inject(Focus);
 
   readonly element = injectElement();
-  readonly anchorName = resolve(Anchor).name;
+  readonly anchorName = inject(Anchor).name;
 
   readonly content = model<Type<unknown> | TemplateRef<{ $implicit: ProtoTooltipTrigger }> | null>(
     null,
@@ -229,7 +228,7 @@ export class ProtoTooltipTrigger {
 })
 class TooltipContainer {
   readonly trigger = inject(ProtoTooltipTrigger);
-  readonly hover = resolve(Hover);
+  readonly hover = inject(Hover);
   readonly align = this.trigger.align;
 
   readonly triggerAnchorName = this.trigger.anchorName;

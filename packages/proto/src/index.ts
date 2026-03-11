@@ -1,2 +1,1 @@
-export * from './lib/host';
-export * from './lib/resolvable';
+export * from './lib/proto';

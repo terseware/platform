@@ -1,8 +1,8 @@
 import { afterRenderEffect, inject, signal, untracked } from '@angular/core';
-import { Resolvable } from '@terseware/proto';
+import { Behavior } from '@terseware/proto';
 import { ElementRenderer, injectElement, isomorphicEffect } from '@terseware/utils';
 
-@Resolvable()
+@Behavior()
 export class Intersect {
   readonly #element = injectElement();
   readonly #renderer = inject(ElementRenderer);

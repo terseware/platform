@@ -1,9 +1,9 @@
 import { Directive, inject } from '@angular/core';
-import { Resolvable, resolve } from '@terseware/proto';
+import { Behavior } from '@terseware/proto';
 import { ElementRenderer, injectElement } from '@terseware/utils';
 import { MenuTrigger } from './menu-trigger';
 
-@Resolvable()
+@Behavior()
 export class Menu {
   readonly element = injectElement();
   readonly #renderer = inject(ElementRenderer);
@@ -45,5 +45,5 @@ export class Menu {
   exportAs: 'protoMenu',
 })
 export class ProtoMenu {
-  readonly menu = resolve(Menu);
+  readonly menu = inject(Menu);
 }

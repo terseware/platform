@@ -42,13 +42,13 @@ packages/ui/{button,icon,theme,tooltip,utils}
 
 ## Architecture
 
-### Resolvable Pattern (`@Resolvable()`)
+### Behavior Pattern (`@Behavior()`)
 
-Core to the library architecture. Classes decorated with `@Resolvable()` are resolved dynamically from the DOM hierarchy via `ElementRef`, stored in a `WeakMap`. This replaces traditional Angular DI for protocol behaviors. Resolution modes: `inherit` (walks up DOM) and `host` (current element only).
+Core to the library architecture. Classes decorated with `@Behavior()` are resolved dynamically from the DOM hierarchy via `ElementRef`, stored in a `WeakMap`. This replaces traditional Angular DI for protocol behaviors. Resolution modes: `inherit` (walks up DOM) and `host` (current element only).
 
 ### Protocol Directives
 
-Behavioral primitives (Interact, Focus, Button, Press, Hover) are Angular directives paired with `@Resolvable()` classes. They manage DOM state (ARIA, tabindex, focus) through signals. Directives bridge template inputs to class signals via `signalBind()`.
+Behavioral primitives (Interact, Focus, Button, Press, Hover) are Angular directives paired with `@Behavior()` classes. They manage DOM state (ARIA, tabindex, focus) through signals. Directives bridge template inputs to class signals via `signalBind()`.
 
 ### Signal-First State
 

@@ -1,31 +1,22 @@
-import { signal } from '@angular/core';
-import { Host, Resolvable, resolve } from '@terseware/proto';
-import { Focus } from '@terseware/proto/focus';
-import { Hover } from '@terseware/proto/hover';
-import { Interact } from '@terseware/proto/interact';
-import { Press } from '@terseware/proto/press';
-import {
-  isNativeAnchorTag,
-  isNativeButtonTag,
-  isNativeInputTag,
-  signalBind,
-} from '@terseware/utils';
+import { inject, signal } from '@angular/core';
+import { Behavior, ProtoHost } from '@terseware/proto';
+import { InteractBehavior } from '@terseware/proto/interact';
+import { isNativeAnchorTag, isNativeButtonTag, isNativeInputTag } from '@terseware/utils';
 
-@Resolvable()
-export class Button {
-  readonly #host = resolve(Host);
-  readonly interact = resolve(Interact);
-  readonly hover = resolve(Hover);
-  readonly press = resolve(Press);
-  readonly focus = resolve(Focus);
+@Behavior()
+export class ButtonBehavior {
+  readonly #host = inject(ProtoHost);
+  readonly interact = inject(InteractBehavior);
 
-  get #isNativeButton(): boolean {
+  // Using getters here in case of DOM changes between events.
+
+  get #isButton(): boolean {
     return isNativeButtonTag(this.#host.element);
   }
-  get #isValidLink(): boolean {
+  get #isLink(): boolean {
     return isNativeAnchorTag(this.#host.element, { validLink: true });
   }
-  get #isNativeInput(): boolean {
+  get #isInput(): boolean {
     return isNativeInputTag(this.#host.element, {
       types: ['button', 'submit', 'reset', 'image'],
     });
@@ -40,16 +31,12 @@ export class Button {
   readonly type = signal<string | null>(null);
 
   constructor() {
-    signalBind(this.hover.disabled, this.interact.disabled);
-    signalBind(this.press.disabled, this.interact.disabled);
-    signalBind(this.focus.disabled, this.interact.hardDisabled); // Allow focus when focusable when disabled is true
-
     this.#host.bindAttr('role', () => {
       const role = this.role();
       if (role) {
         return role;
       }
-      if (this.#isNativeButton || this.#isValidLink || this.#isNativeInput) {
+      if (this.#isButton || this.#isLink || this.#isInput) {
         return null;
       }
       return 'button';
@@ -60,13 +47,13 @@ export class Button {
       if (type) {
         return type;
       }
-      if (this.#isNativeButton) {
+      if (this.#isButton) {
         return 'button';
       }
       return null;
     });
 
-    this.#host.on('click', (next, event) => {
+    this.#host.on('click', (event, next) => {
       if (this.interact.disabled()) {
         event.preventDefault();
         return;
@@ -74,14 +61,14 @@ export class Button {
       next(event);
     });
 
-    this.#host.on('mousedown', (next, event) => {
+    this.#host.on('mousedown', (event, next) => {
       if (this.interact.disabled()) {
         return;
       }
       next(event);
     });
 
-    this.#host.on('pointerdown', (next, event) => {
+    this.#host.on('pointerdown', (event, next) => {
       if (this.interact.disabled()) {
         event.preventDefault();
         return;
@@ -89,7 +76,7 @@ export class Button {
       next(event);
     });
 
-    this.#host.on('keydown', (next, event) => {
+    this.#host.on('keydown', (event, next) => {
       if (this.interact.disabled()) {
         return;
       }
@@ -110,7 +97,7 @@ export class Button {
 
         event.preventDefault();
 
-        if (this.#isValidLink || this.#isNativeButton) {
+        if (this.#isLink || this.#isButton) {
           currentTarget.click();
           event.preventProtoHandler();
         }
@@ -119,7 +106,7 @@ export class Button {
       }
 
       const isEnterKey = event.key === 'Enter';
-      const shouldClick = isCurrentTarget && !this.#isNativeButton && !this.#isValidLink;
+      const shouldClick = isCurrentTarget && !this.#isButton && !this.#isLink;
 
       if (shouldClick) {
         // Prevent default to stop Space from scrolling the page
@@ -135,7 +122,7 @@ export class Button {
       }
     });
 
-    this.#host.on('keyup', (next, event) => {
+    this.#host.on('keyup', (event, next) => {
       if (this.interact.disabled()) {
         return;
       }
@@ -144,7 +131,7 @@ export class Button {
 
       if (
         event.target === event.currentTarget &&
-        this.#isNativeButton &&
+        this.#isButton &&
         this.isComposite() &&
         event.key === ' '
       ) {
@@ -159,7 +146,7 @@ export class Button {
       // Keyboard accessibility for non interactive elements
       if (
         event.target === event.currentTarget &&
-        !this.#isNativeButton &&
+        !this.#isButton &&
         !this.isComposite() &&
         event.key === ' '
       ) {

@@ -2,10 +2,10 @@ import type { Injector } from '@angular/core';
 import { computed, effect, inject, runInInjectionContext, signal, untracked } from '@angular/core';
 import type { FormField } from '@angular/forms/signals';
 import { FORM_FIELD } from '@angular/forms/signals';
-import { Resolvable, resolve } from '@terseware/proto';
+import { Behavior } from '@terseware/proto';
 import { Focus } from '@terseware/proto/focus';
 import { Hover } from '@terseware/proto/hover';
-import { Interact } from '@terseware/proto/interact';
+import { InteractBehavior } from '@terseware/proto/interact';
 import { Press } from '@terseware/proto/press';
 import {
   disposable,
@@ -29,7 +29,7 @@ import type { ProtoFieldDescription } from './proto-field-description';
 import type { ProtoFieldError } from './proto-field-error';
 import type { ProtoFieldLabel } from './proto-field-label';
 
-@Resolvable()
+@Behavior()
 export class FieldCtx<T> {
   readonly #renderer = inject(ElementRenderer);
   readonly #field = inject<FormField<T>>(FORM_FIELD);
@@ -67,7 +67,7 @@ export class FieldCtx<T> {
   }
 
   readonly formCtx = computed(() =>
-    runInInjectionContext(this.#field.injector, () => resolve(FormCtx<T>)),
+    runInInjectionContext(this.#field.injector, () => inject(FormCtx<T>)),
   );
 
   readonly errorsVisible = computed(() =>
@@ -77,11 +77,11 @@ export class FieldCtx<T> {
   readonly triedSubmitting = computed(() => this.formCtx().triedSubmitting());
 
   constructor() {
-    const interact = resolve(Interact);
+    const interact = inject(InteractBehavior);
     signalBind(interact.disabled, () => this.state().disabled());
-    signalBind(resolve(Hover).disabled, interact.disabled);
-    signalBind(resolve(Press).disabled, interact.disabled);
-    signalBind(resolve(Focus).disabled, interact.hardDisabled); // Allow focus when focusable when disabled is true
+    signalBind(inject(Hover).disabled, interact.disabled);
+    signalBind(inject(Press).disabled, interact.disabled);
+    signalBind(inject(Focus).disabled, interact.hardDisabled); // Allow focus when focusable when disabled is true
 
     effect(onCleanup =>
       runInScope(this.#field.injector, onCleanup, () => this.formCtx().addFieldCtx(this)),

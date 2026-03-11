@@ -1,6 +1,6 @@
 # Proto Library Expansion Plan
 
-A prioritized plan for adding new primitives to `@terseware/proto`. Each primitive follows the established two-tier pattern: a `@Resolvable()` state class for headless logic + a thin `Proto*` directive for template usage.
+A prioritized plan for adding new primitives to `@terseware/proto`. Each primitive follows the established two-tier pattern: a `@Behavior()` state class for headless logic + a thin `Proto*` directive for template usage.
 
 ---
 
@@ -42,7 +42,7 @@ These are blocking for most higher-level components. Build these first.
 **State management:**
 
 ```typescript
-@Resolvable()
+@Behavior()
 export class Overlay {
   readonly open = bindable(false);
   readonly modal = bindable(false); // traps focus when true
@@ -89,7 +89,7 @@ export class Overlay {
 **State management:**
 
 ```typescript
-@Resolvable()
+@Behavior()
 export class Listbox<T> {
   readonly disabled = bindable(false);
   readonly selectionMode = bindable<'single' | 'multiple'>('single');
@@ -99,7 +99,7 @@ export class Listbox<T> {
   readonly selectedItems = signal<Set<ListboxItem<T>>>(new Set());
 }
 
-@Resolvable({ inherit: false })
+@Behavior({ inherit: false })
 export class ListboxItem<T> {
   readonly value = bindable<T>(undefined!);
   readonly disabled = bindable(false);
@@ -138,7 +138,7 @@ export class ListboxItem<T> {
 **State management:**
 
 ```typescript
-@Resolvable()
+@Behavior()
 export class Toggle {
   readonly disabled = bindable(false);
   readonly checked = bindable(false);
@@ -421,7 +421,7 @@ These are useful but not blocking for core component libraries.
 
 **Package:** `packages/proto/toast`
 
-Managed notification stack with auto-dismiss, swipe-to-dismiss, and ARIA live regions. Follows a service-based pattern rather than the Resolvable pattern since toasts are not tied to a specific DOM element at creation time.
+Managed notification stack with auto-dismiss, swipe-to-dismiss, and ARIA live regions. Follows a service-based pattern rather than the Behavior pattern since toasts are not tied to a specific DOM element at creation time.
 
 ### 4.2 Toolbar
 
@@ -458,7 +458,7 @@ Shows how new primitives build on existing ones:
                     (bindable, scoped, dispose, ElementRenderer, isomorphicEffect)
                           |
                     @terseware/proto
-                    (Resolvable)
+                    (Behavior)
                           |
           +------+--------+--------+-------+
           |      |        |        |       |
@@ -485,7 +485,7 @@ Follow this checklist for every new primitive:
 
 1. **Create the package structure** matching the pattern in `READINESS_CHECKLIST.md` section 3.2
 2. **Add path mapping** in `tsconfig.base.json` under `paths`
-3. **Implement the state class** with `@Resolvable()`, using `bindable()` for inputs, `signal()` for internal state, `computed()` for derived state
+3. **Implement the state class** with `@Behavior()`, using `bindable()` for inputs, `signal()` for internal state, `computed()` for derived state
 4. **Implement DOM effects** via `isomorphicEffect()` + `ElementRenderer` -- never write to the DOM outside of effects
 5. **Implement the directive** as a thin wrapper that forwards `input()` signals to the state class
 6. **Write tests** using `@testing-library/angular` with `screen` queries and accessibility assertions

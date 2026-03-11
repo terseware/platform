@@ -1,8 +1,8 @@
 import { inject, Injector, signal } from '@angular/core';
-import { Resolvable } from '@terseware/proto';
+import { Behavior } from '@terseware/proto';
 import { ElementRenderer, injectElement, isomorphicEffect, onDestroy } from '@terseware/utils';
 
-@Resolvable()
+@Behavior()
 export class Press {
   readonly #injector = inject(Injector);
   readonly #element = injectElement();

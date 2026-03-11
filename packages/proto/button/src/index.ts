@@ -1,2 +1,1 @@
-export * from './lib/button';
-export * from './lib/proto-button';
+export * from './lib/button.behavior';

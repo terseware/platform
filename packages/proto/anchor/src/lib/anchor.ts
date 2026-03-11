@@ -1,10 +1,10 @@
 import { inject } from '@angular/core';
-import { Resolvable } from '@terseware/proto';
+import { Behavior } from '@terseware/proto';
 import { ElementRenderer, injectElement, uniqueId } from '@terseware/utils';
 
 export type AnchorName = `--${string}`;
 
-@Resolvable()
+@Behavior()
 export class Anchor {
   readonly #element = injectElement();
   readonly #renderer = inject(ElementRenderer);

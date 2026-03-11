@@ -18,9 +18,9 @@ import {
   viewChild,
   ViewContainerRef,
 } from '@angular/core';
-import { Host, Resolvable, resolve } from '@terseware/proto';
+import { Behavior, ProtoHost } from '@terseware/proto';
 import { Anchor } from '@terseware/proto/anchor';
-import { Button } from '@terseware/proto/button';
+import { ButtonBehavior } from '@terseware/proto/button';
 import { Hover } from '@terseware/proto/hover';
 import {
   disposable,
@@ -68,15 +68,15 @@ const sideFlip: Record<string, string> = {
 
 export type MenuContent = Type<object> | TemplateRef<{ $implicit: MenuTrigger }>;
 
-@Resolvable({ resolveIn: 'any' })
+@Behavior()
 export class MenuTrigger {
   readonly #vcr = inject(ViewContainerRef);
   readonly #injector = inject(Injector);
-  readonly #host = resolve(Host);
+  readonly #host = inject(ProtoHost);
   readonly element = injectElement();
 
-  readonly button = resolve(Button);
-  readonly anchorName = resolve(Anchor).name;
+  readonly button = inject(ButtonBehavior);
+  readonly anchorName = inject(Anchor).name;
   readonly triggerId = this.#host.id('menu-trigger');
 
   /**
@@ -129,7 +129,7 @@ export class MenuTrigger {
   }
 
   readonly activeItem = linkedSignal(
-    () => this.items().find(item => item.button.focus.isFocused()) ?? null,
+    () => this.items().find(item => item.focus.isFocused()) ?? null,
   );
 
   /** Pending focus action deferred until items are rendered. */
@@ -146,7 +146,7 @@ export class MenuTrigger {
     // const debounceTimeout: ReturnType<typeof setTimeout> | null = null;
 
     this.#host.on('click', () => this.toggle());
-    this.#host.on('keydown', (next, event) => {
+    this.#host.on('keydown', (event, next) => {
       switch (event.key) {
         case 'Escape':
           this.close();
@@ -213,7 +213,7 @@ export class MenuTrigger {
     isomorphicEffect({
       write: onCleanup => {
         const id = this.menu()?.id || null;
-        runInScope(this.#injector, onCleanup, () => this.#host.disposableAttr('aria-controls', id));
+        runInScope(this.#injector, onCleanup, () => this.#host.arrayAttr('aria-controls', id));
       },
     });
 
@@ -247,7 +247,7 @@ export class MenuTrigger {
     });
 
     // Close on focusout when focus moves outside the trigger and menu
-    this.#host.on('focusout', (next, event) => {
+    this.#host.on('focusout', (event, next) => {
       const related = event.relatedTarget as Node | null;
       if (!this.expanded()) {
         return;
@@ -307,10 +307,10 @@ export class MenuTrigger {
       const index = items.indexOf(activeItem);
       // Wrap to first item if at end
       const nextIndex = (index + 1) % items.length;
-      items[nextIndex]?.button.focus.focus();
+      items[nextIndex]?.focus.focus();
     } else {
       // No active: focus first
-      items[0]?.button.focus.focus();
+      items[0]?.focus.focus();
     }
   }
 
@@ -322,10 +322,10 @@ export class MenuTrigger {
       const index = items.indexOf(activeItem);
       // Wrap to last item if at start
       const prevIndex = (index - 1 + items.length) % items.length;
-      items[prevIndex]?.button.focus.focus();
+      items[prevIndex]?.focus.focus();
     } else {
       // No active: focus last
-      items.at(-1)?.button.focus.focus();
+      items.at(-1)?.focus.focus();
     }
   }
 
@@ -338,7 +338,7 @@ export class MenuTrigger {
   }
 
   focusAtIndex(index: number): void {
-    this.items().at(index)?.button.focus.focus();
+    this.items().at(index)?.focus.focus();
   }
 
   /** Typeahead: focus the next item whose text starts with the given character. */
@@ -354,18 +354,18 @@ export class MenuTrigger {
       const item = items[(startIndex + i) % items.length];
       const text = item?.element.textContent?.trim().toLowerCase();
       if (text?.startsWith(lowerChar)) {
-        item?.button.focus.focus();
+        item?.focus.focus();
         return;
       }
     }
   }
 
   #focusFirstEnabled(): void {
-    this.items().at(0)?.button.focus.focus();
+    this.items().at(0)?.focus.focus();
   }
 
   #focusLastEnabled(): void {
-    this.items().at(-1)?.button.focus.focus();
+    this.items().at(-1)?.focus.focus();
   }
 }
 
@@ -406,8 +406,8 @@ class MenuContainer {
   readonly #renderer = inject(ElementRenderer);
   readonly #injector = inject(Injector);
   readonly vcr = viewChild('vcr', { read: ViewContainerRef });
-  readonly ctx = resolve(MenuTrigger);
-  readonly hover = resolve(Hover);
+  readonly ctx = inject(MenuTrigger);
+  readonly hover = inject(Hover);
 
   readonly triggerAnchorName = this.ctx.anchorName;
   readonly menuAnchorName = `${this.ctx.anchorName}-menu` as const;
@@ -457,7 +457,7 @@ class MenuContainer {
   exportAs: 'protoMenuTrigger',
 })
 export class ProtoMenuTrigger {
-  readonly ctx = resolve(MenuTrigger);
+  readonly ctx = inject(MenuTrigger);
 
   readonly disabled = input<boolean, BooleanInput>(false, {
     transform: booleanAttribute,

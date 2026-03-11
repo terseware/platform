@@ -18,7 +18,7 @@ A comprehensive plan for building a headless forms accessibility layer on top of
 
 The proto forms package (`packages/proto/forms/`) provides a minimal but working accessibility wiring layer for Angular Signal Forms. It consists of five exports:
 
-**`FieldContext`** (`field-context.ts`) -- The central `@Resolvable()` state class. Injected via the `FORM_FIELD` token from `@angular/forms/signals`, it reads the `FormField` instance to access the host element and field state. It manages three `SignalSet` collections (labels, descriptions, errors) and wires them to the DOM via `aria-labelledby`, `aria-describedby`, and `aria-invalid` attributes using `isomorphicEffect` and `ElementRenderer`.
+**`FieldContext`** (`field-context.ts`) -- The central `@Behavior()` state class. Injected via the `FORM_FIELD` token from `@angular/forms/signals`, it reads the `FormField` instance to access the host element and field state. It manages three `SignalSet` collections (labels, descriptions, errors) and wires them to the DOM via `aria-labelledby`, `aria-describedby`, and `aria-invalid` attributes using `isomorphicEffect` and `ElementRenderer`.
 
 **`ProtoFieldLabel`** (`field-label.ts`) -- A directive applied to label elements. Accepts a `FieldTree` via the `[for]` input. Generates a unique ID, detects whether it is on a native `<label>` element (via `HOST_TAG_NAME`), and if so sets the `for` attribute to point at the field's element ID. Registers itself with `FieldContext.addLabel()` inside a `scoped()` effect so cleanup happens automatically when the label is removed from the DOM.
 
@@ -34,7 +34,7 @@ The proto forms package (`packages/proto/forms/`) provides a minimal but working
 
 The registration pattern is the most interesting aspect. Here is the flow:
 
-1. A consumer writes `<input proto [formField]="form.name" />`. The `proto` attribute triggers `ProtoFormField`, which injects `FieldContext`. Since `FieldContext` is `@Resolvable()`, it auto-creates on the element if not already present.
+1. A consumer writes `<input proto [formField]="form.name" />`. The `proto` attribute triggers `ProtoFormField`, which injects `FieldContext`. Since `FieldContext` is `@Behavior()`, it auto-creates on the element if not already present.
 
 2. `FieldContext` constructor injects `FORM_FIELD` (the Angular `FormField` directive instance), reads its `element` property for DOM access, and sets up `isomorphicEffect` watchers to manage `aria-invalid`.
 
@@ -268,7 +268,7 @@ export function submitErrorStrategy(submitted: Signal<boolean>): ErrorStrategyFn
 **Integration with `FieldContext`:**
 
 ```typescript
-@Resolvable()
+@Behavior()
 export class FieldContext<T> {
   readonly #errorStrategy = inject(ERROR_STRATEGY);
   readonly errorsVisible = computed(() => this.#errorStrategy(this.state()));

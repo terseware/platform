@@ -13,7 +13,7 @@ describe('App', () => {
     class TestClass {}
     expect(isClass(TestClass)).toBe(true);
 
-    // @Resolvable()
+    // @Behavior()
     // class TestService {
     //   readonly value = uniqueId();
     //   constructor() {
