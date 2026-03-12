@@ -15,19 +15,11 @@ import {
   ViewContainerRef,
 } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+import { ProtoHost } from '@terseware/proto';
 import { Anchor } from '@terseware/proto/anchor';
-import { Focus } from '@terseware/proto/focus';
-import { Hover } from '@terseware/proto/hover';
-import {
-  disposable,
-  ElementRenderer,
-  injectElement,
-  isNumber,
-  isomorphicEffect,
-  onChange,
-  onDestroy,
-  runInScope,
-} from '@terseware/utils';
+import { FocusProto } from '@terseware/proto/focus';
+import { HoverProto } from '@terseware/proto/hover';
+import { injectElement, isNumber, isomorphicEffect, onChange } from '@terseware/utils';
 import { debounce, skip, timer } from 'rxjs';
 import type { ProtoTooltip } from './proto-tooltip';
 import type { ProtoTooltipArrow } from './proto-tooltip-arrow';
@@ -48,9 +40,9 @@ const sideFlip: Record<TooltipSide, TooltipSide> = {
 export class ProtoTooltipTrigger {
   readonly #vcr = inject(ViewContainerRef);
   readonly #injector = inject(Injector);
-  readonly #renderer = inject(ElementRenderer);
-  readonly #hover = inject(Hover);
-  readonly #focus = inject(Focus);
+  readonly #host = inject(ProtoHost);
+  readonly #hover = inject(HoverProto);
+  readonly #focus = inject(FocusProto);
 
   readonly element = injectElement();
   readonly anchorName = inject(Anchor).name;
@@ -77,20 +69,16 @@ export class ProtoTooltipTrigger {
 
   readonly #tooltip = signal<ProtoTooltip | null>(null);
   readonly tooltip = this.#tooltip.asReadonly();
-  setTooltip(tooltip: ProtoTooltip, injector?: Injector | null | undefined): () => void {
-    return disposable(this.setTooltip, injector, () => {
-      this.#tooltip.set(tooltip);
-      return () => this.#tooltip.set(null);
-    });
+  setTooltip(tooltip: ProtoTooltip): () => void {
+    this.#tooltip.set(tooltip);
+    return () => this.#tooltip.set(null);
   }
 
   readonly #arrow = signal<ProtoTooltipArrow | null>(null);
   readonly arrow = this.#arrow.asReadonly();
-  setArrow(arrow: ProtoTooltipArrow, injector?: Injector | null | undefined): () => void {
-    return disposable(this.setArrow, injector, () => {
-      this.#arrow.set(arrow);
-      return () => this.#arrow.set(null);
-    });
+  setArrow(arrow: ProtoTooltipArrow): () => void {
+    this.#arrow.set(arrow);
+    return () => this.#arrow.set(null);
   }
 
   readonly tooltipSideFlip = computed(() => sideFlip[this.tooltipSide()]);
@@ -99,25 +87,24 @@ export class ProtoTooltipTrigger {
   readonly #isInstant = signal(false);
   readonly isInstant = this.#isInstant.asReadonly();
 
-  #openTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  // #openTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
   #set(data: { isInstant: boolean; tooltipOpen: boolean }): void {
     this.#isInstant.set(data.isInstant);
-    this.#openTimeoutId && clearTimeout(this.#openTimeoutId);
-    this.#openTimeoutId = setTimeout(() => this.tooltipOpen.set(data.tooltipOpen));
+    this.tooltipOpen.set(data.tooltipOpen);
+    // this.#openTimeoutId && clearTimeout(this.#openTimeoutId);
+    // this.#openTimeoutId = setTimeout(() => this.tooltipOpen.set(data.tooltipOpen));
   }
 
   readonly #hoverSources = signal([linkedSignal(() => this.#hover.isHovered())]);
-  addHoverSource(source: Signal<boolean>, injector?: Injector | null | undefined): () => void {
-    return disposable(this.addHoverSource, injector, () => {
-      const ctrl = linkedSignal(source);
-      this.#hoverSources.update(src => [...src, ctrl]);
-      return () => this.#hoverSources.update(src => src.filter(s => s !== ctrl));
-    });
+  addHoverSource(source: Signal<boolean>): () => void {
+    const ctrl = linkedSignal(source);
+    this.#hoverSources.update(src => [...src, ctrl]);
+    return () => this.#hoverSources.update(src => src.filter(s => s !== ctrl));
   }
 
   constructor() {
-    onDestroy(() => this.#openTimeoutId && clearTimeout(this.#openTimeoutId));
+    // onDestroy(() => this.#openTimeoutId && clearTimeout(this.#openTimeoutId));
 
     effect(onCleanup => {
       const isOpen = this.tooltipOpen();
@@ -143,30 +130,28 @@ export class ProtoTooltipTrigger {
     });
 
     isomorphicEffect({
-      earlyRead: () => this.tooltip()?.id,
-      write: (tooltipId, onCleanup) => {
-        const id = tooltipId();
-        id &&
-          runInScope(this.#injector, onCleanup, () =>
-            this.#renderer.disposableAttr(this.element, 'aria-describedby', id),
-          );
+      write: onCleanup => {
+        const id = this.tooltip()?.id || null;
+        const removeAttr = this.#host.arrayAttr('aria-describedby', id);
+        onCleanup(() => removeAttr());
       },
     });
 
-    this.#renderer.listen('document', 'keydown', event => {
+    this.#host.docEvent('keydown', event => {
       if (event.key === 'Escape') {
         this.#set({ isInstant: true, tooltipOpen: false });
       }
     });
 
-    this.#renderer.listen('document', 'click', () => {
+    this.#host.docEvent('click', () => {
       this.#set({ isInstant: true, tooltipOpen: false });
     });
 
-    this.#renderer.listen(this.element, 'pointerdown', () => {
+    this.#host.on('pointerdown', ({ event, next }) => {
       // Reset hover sources to prevent tooltip from showing if the user immediately clicks away
       this.#hoverSources().forEach(source => source.set(false));
       this.#set({ isInstant: true, tooltipOpen: false });
+      next(event);
     });
 
     onChange(this.#focus.isFocusVisible, focused => {
@@ -228,7 +213,7 @@ export class ProtoTooltipTrigger {
 })
 class TooltipContainer {
   readonly trigger = inject(ProtoTooltipTrigger);
-  readonly hover = inject(Hover);
+  readonly hover = inject(HoverProto);
   readonly align = this.trigger.align;
 
   readonly triggerAnchorName = this.trigger.anchorName;

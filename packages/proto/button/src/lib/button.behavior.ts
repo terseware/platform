@@ -1,9 +1,9 @@
 import { inject, signal } from '@angular/core';
-import { Behavior, ProtoHost } from '@terseware/proto';
+import { ProtoHost, Resolvable } from '@terseware/proto';
 import { InteractBehavior } from '@terseware/proto/interact';
 import { isNativeAnchorTag, isNativeButtonTag, isNativeInputTag } from '@terseware/utils';
 
-@Behavior()
+@Resolvable()
 export class ButtonBehavior {
   readonly #host = inject(ProtoHost);
   readonly interact = inject(InteractBehavior);
@@ -53,7 +53,7 @@ export class ButtonBehavior {
       return null;
     });
 
-    this.#host.on('click', (event, next) => {
+    this.#host.on('click', ({ event, next }) => {
       if (this.interact.disabled()) {
         event.preventDefault();
         return;
@@ -61,14 +61,14 @@ export class ButtonBehavior {
       next(event);
     });
 
-    this.#host.on('mousedown', (event, next) => {
+    this.#host.on('mousedown', ({ event, next }) => {
       if (this.interact.disabled()) {
         return;
       }
       next(event);
     });
 
-    this.#host.on('pointerdown', (event, next) => {
+    this.#host.on('pointerdown', ({ event, next }) => {
       if (this.interact.disabled()) {
         event.preventDefault();
         return;
@@ -76,7 +76,7 @@ export class ButtonBehavior {
       next(event);
     });
 
-    this.#host.on('keydown', (event, next) => {
+    this.#host.on('keydown', ({ event, next }) => {
       if (this.interact.disabled()) {
         return;
       }
@@ -122,7 +122,7 @@ export class ButtonBehavior {
       }
     });
 
-    this.#host.on('keyup', (event, next) => {
+    this.#host.on('keyup', ({ event, next }) => {
       if (this.interact.disabled()) {
         return;
       }

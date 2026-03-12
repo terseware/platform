@@ -1,6 +1,5 @@
 import { DOCUMENT, inject, Injectable, signal } from '@angular/core';
-import { Behavior } from '@terseware/proto';
-import { ElementRenderer, injectElement, isomorphicEffect } from '@terseware/utils';
+import { ProtoHost, Resolvable } from '@terseware/proto';
 
 // ── Global touch detection ──────────────────────────────────────────────────
 // Tracks whether emulated mouse events should be globally ignored.
@@ -42,10 +41,9 @@ class GlobalPointerEvents {
   }
 }
 
-@Behavior()
-export class Hover {
-  readonly #element = injectElement();
-  readonly #renderer = inject(ElementRenderer);
+@Resolvable()
+export class HoverProto {
+  readonly #host = inject(ProtoHost);
   readonly #globalPointerEvents = inject(GlobalPointerEvents);
 
   get globalIgnoreMouseEvents(): boolean {
@@ -57,37 +55,32 @@ export class Hover {
   readonly isHovered = this.#isHovered.asReadonly();
 
   constructor() {
-    isomorphicEffect({
-      earlyRead: () => !this.disabled() && this.isHovered(),
-      write: hovered => this.#renderer.setAttr(this.#element, 'data-hover', hovered() ? '' : null),
+    this.#host.bindAttr('data-hover', () => (!this.disabled() && this.isHovered() ? '' : null));
+
+    this.#host.on('pointerenter', ({ event, next }) => {
+      !this.disabled() && this.#onPointerEnter(event);
+      next(event);
     });
 
-    this.#renderer.listen(
-      this.#element,
-      'pointerenter',
-      event => !this.disabled() && this.#onPointerEnter(event),
-    );
-    this.#renderer.listen(
-      this.#element,
-      'pointerleave',
-      event => !this.disabled() && this.#onPointerLeave(event),
-    );
-    this.#renderer.listen(
-      this.#element,
-      'touchstart',
-      () => !this.disabled() && this.#onTouchStart(),
-      { passive: true },
-    );
-    this.#renderer.listen(
-      this.#element,
-      'mouseenter',
-      event => !this.disabled() && this.#onMouseEnter(event),
-    );
-    this.#renderer.listen(
-      this.#element,
-      'mouseleave',
-      event => !this.disabled() && this.#onMouseLeave(event),
-    );
+    this.#host.on('pointerleave', ({ event, next }) => {
+      !this.disabled() && this.#onPointerLeave(event);
+      next(event);
+    });
+
+    this.#host.on('touchstart', ({ event, next }) => {
+      !this.disabled() && this.#onTouchStart();
+      next(event);
+    });
+
+    this.#host.on('mouseenter', ({ event, next }) => {
+      !this.disabled() && this.#onMouseEnter(event);
+      next(event);
+    });
+
+    this.#host.on('mouseleave', ({ event, next }) => {
+      !this.disabled() && this.#onMouseLeave(event);
+      next(event);
+    });
   }
 
   #localIgnoreMouseEvents = false;

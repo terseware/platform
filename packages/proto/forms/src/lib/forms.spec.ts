@@ -2,8 +2,9 @@ import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import type { FieldState } from '@angular/forms/signals';
 import { form, FormField, FormRoot, required } from '@angular/forms/signals';
 import { By } from '@angular/platform-browser';
+import { ProtoHost, ProtoResolver } from '@terseware/proto';
 import { InteractBehavior } from '@terseware/proto/interact';
-import { fireEvent, render } from '@testing-library/angular';
+import { fireEvent, render, screen } from '@testing-library/angular';
 import { PROTO_FIELD_ERROR_STRATEGY } from './forms-di';
 import { resolver } from './forms-resolver';
 import { ProtoField } from './proto-field';
@@ -20,11 +21,11 @@ describe('Forms', () => {
       changeDetection: ChangeDetectionStrategy.OnPush,
       imports: [FormRoot, FormField, ProtoFieldLabel, ProtoField],
       template: `
-        <form [formRoot]="form">
+        <form data-testid="form" [formRoot]="form">
           @if (showLabel()) {
             <label protoFieldLabel [for]="form.name">Name</label>
           }
-          <input protoField [formField]="form.name" />
+          <input data-testid="input" protoField [formField]="form.name" />
         </form>
       `,
     })
@@ -39,6 +40,15 @@ describe('Forms', () => {
       const label = fixture.debugElement.query(By.directive(ProtoFieldLabel));
       expect(label.nativeElement).toHaveAttribute('id');
       expect(label.nativeElement.id).toMatch(/field-label-\d+$/);
+    });
+
+    it('should have correct host elements', async () => {
+      const { fixture } = await render(TestHost);
+
+      const field = fixture.debugElement.query(By.directive(ProtoField)).injector.get(ProtoField);
+      const fieldHost = ProtoResolver.resolve(ProtoHost, field.field.element);
+      expect(fieldHost.element).toBe(screen.getByTestId('input'));
+      expect(field.ctx.formCtx().element).toBe(screen.getByTestId('form'));
     });
 
     it('should set aria-labelledby on the field element', async () => {

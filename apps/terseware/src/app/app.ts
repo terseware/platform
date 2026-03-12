@@ -3,8 +3,8 @@ import { httpResource } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, signal } from '@angular/core';
 import { form, FormField, FormRoot, required } from '@angular/forms/signals';
 import { RouterLink, RouterOutlet } from '@angular/router';
+import { NgIcon } from '@ng-icons/core';
 import {
-  FormCtx,
   ProtoField,
   ProtoFieldDescription,
   ProtoFieldError,
@@ -14,7 +14,6 @@ import {
 import { InteractBehavior } from '@terseware/proto/interact';
 import { ProtoMenu, ProtoMenuItem, ProtoMenuTrigger } from '@terseware/proto/menu';
 import { TerseButton } from '@terseware/ui/button';
-import { TerseIcon, toTerseIcon } from '@terseware/ui/icon';
 import { TerseThemeToggle } from '@terseware/ui/theme';
 
 @Component({
@@ -29,21 +28,20 @@ import { TerseThemeToggle } from '@terseware/ui/theme';
     ProtoField,
     RouterLink,
     RouterOutlet,
-    TerseIcon,
     TerseThemeToggle,
     TerseButton,
     ProtoMenuTrigger,
     ProtoMenu,
     ProtoMenuItem,
     CdkDrag,
+    NgIcon,
   ],
-  providers: [FormCtx],
   host: { class: 'contents' },
   template: `
     <header class="bg-surface flex h-16 items-center px-4 py-3">
       <a class="inline-flex items-center" terseTooltip="Home" [routerLink]="['/']">
         @if (logoIcon(); as logoIcon) {
-          <svg class="text-primary size-8" fill="currentColor" [terseIcon]="logoIcon"></svg>
+          <ng-icon [svg]="logoIcon" />
         }
         <span class="font-mono text-lg tracking-wide"
           ><span class="mr-px font-semibold">terse</span
@@ -98,9 +96,7 @@ import { TerseThemeToggle } from '@terseware/ui/theme';
 })
 export class App {
   readonly logo = httpResource.text(() => 'terseware.svg');
-  readonly logoIcon = computed(() =>
-    this.logo.hasValue() ? toTerseIcon('Logo', this.logo.value() as `<svg ${string}`) : null,
-  );
+  readonly logoIcon = computed(() => (this.logo.hasValue() ? this.logo.value() : null));
 
   readonly show = signal(true);
   readonly form = form(

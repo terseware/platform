@@ -1,1 +1,2 @@
-export * from './lib/proto';
+export * from './lib/proto-host';
+export * from './lib/proto-resolve';

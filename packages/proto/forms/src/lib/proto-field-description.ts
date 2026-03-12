@@ -1,8 +1,7 @@
-import { computed, Directive, effect, inject, input, runInInjectionContext } from '@angular/core';
+import { computed, Directive, effect, inject, input } from '@angular/core';
 import type { FieldTree } from '@angular/forms/signals';
-import { ElementRenderer, injectElement, runInScope } from '@terseware/utils';
-import { FieldCtx } from './field-ctx';
-import { installFieldDataAttributes, installFieldErrorDataAttributes } from './forms-di';
+import { ProtoHost, ProtoResolver } from '@terseware/proto';
+import { installFieldDataAttributes } from './forms-di';
 
 @Directive({
   selector: '[protoFieldDescription]',
@@ -12,31 +11,23 @@ import { installFieldDataAttributes, installFieldErrorDataAttributes } from './f
   },
 })
 export class ProtoFieldDescription<T> {
-  readonly #element = injectElement();
-  readonly #renderer = inject(ElementRenderer);
+  readonly #host = inject(ProtoHost);
 
-  readonly id = this.#renderer.id(this.#element, 'field-description');
+  readonly id = this.#host.id('field-description');
   readonly field = input.required<FieldTree<T, string | number>>({
     alias: 'protoFieldDescription',
   });
   readonly state = computed(() => this.field()());
 
-  readonly contexts = computed(() =>
-    this.field()()
-      .fieldTree()
-      .formFieldBindings()
-      .map(field => runInInjectionContext(field.injector, () => inject(FieldCtx<T>))),
-  );
-
   constructor() {
+    installFieldDataAttributes<T>(this.#host.element, () => this.state());
+
     effect(onCleanup => {
-      for (const field of this.field()().formFieldBindings()) {
-        const context = runInInjectionContext(field.injector, () => inject(FieldCtx<T>));
-        runInScope(field.injector, onCleanup, () => context.addDescription(this));
+      for (const field of this.state().formFieldBindings()) {
+        const host = ProtoResolver.resolve(ProtoHost, field.element);
+        const removeAttr = host.arrayAttr('aria-describedby', this.id);
+        onCleanup(() => removeAttr());
       }
     });
-
-    installFieldDataAttributes<T>(() => this.state());
-    installFieldErrorDataAttributes(() => this.contexts()[0]);
   }
 }

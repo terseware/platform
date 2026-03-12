@@ -4,15 +4,13 @@ import {
   effect,
   HOST_TAG_NAME,
   inject,
-  Injector,
   input,
   isDevMode,
   signal,
 } from '@angular/core';
 import type { FieldTree } from '@angular/forms/signals';
-import { ProtoHost } from '@terseware/proto';
-import { ElementRenderer, injectElement, runInScope } from '@terseware/utils';
-import { FieldCtx } from './field-ctx';
+import { ProtoHost, ProtoResolver } from '@terseware/proto';
+import { FieldProto } from './field-ctx';
 import { installFieldDataAttributes, installFieldErrorDataAttributes } from './forms-di';
 
 @Directive({
@@ -24,35 +22,30 @@ import { installFieldDataAttributes, installFieldErrorDataAttributes } from './f
   },
 })
 export class ProtoFieldLabel<T> {
-  readonly #injector = inject(Injector);
-  readonly #element = injectElement();
-  readonly #renderer = inject(ElementRenderer);
+  readonly #host = inject(ProtoHost);
   readonly #isNativeLabel = inject(HOST_TAG_NAME).toLowerCase() === 'label';
 
-  readonly id = this.#renderer.id(this.#element, 'field-label');
+  readonly id = this.#host.id('field-label');
   readonly field = input.required<FieldTree<T, string | number>>({ alias: 'for' });
   readonly state = computed(() => this.field()());
 
   readonly #for = signal<string | null>(null);
   readonly for = this.#for.asReadonly();
 
-  readonly contexts = computed(() =>
-    this.field()()
-      .fieldTree()
-      .formFieldBindings()
-      .map(field => ProtoHost.for(field.element, FieldCtx<T>)),
-  );
-
   constructor() {
-    effect(onCleanup => {
-      const contexts = this.contexts();
-      for (const context of contexts) {
-        runInScope(this.#injector, onCleanup, () => context.addLabel(this));
-      }
+    const contexts = computed(() =>
+      this.state()
+        .formFieldBindings()
+        .map(field => ProtoResolver.resolve(FieldProto<T>, field.element)),
+    );
 
-      const context = contexts[0];
-      if (!context) {
-        return;
+    installFieldDataAttributes<T>(this.#host.element, () => this.state());
+    installFieldErrorDataAttributes(this.#host.element, () => contexts()[0]);
+
+    effect(() => {
+      const ctx = contexts()[0];
+      if (ctx) {
+        this.#for.set(this.#isNativeLabel ? ctx.id : null);
       }
 
       if (isDevMode() && this.#isNativeLabel && contexts.length > 1) {
@@ -62,11 +55,14 @@ export class ProtoFieldLabel<T> {
           contexts,
         });
       }
-
-      this.#for.set(this.#isNativeLabel ? context.id : null);
     });
 
-    installFieldDataAttributes<T>(() => this.state());
-    installFieldErrorDataAttributes(() => this.contexts()[0]);
+    effect(onCleanup => {
+      for (const field of this.state().formFieldBindings()) {
+        const host = ProtoResolver.resolve(ProtoHost, field.element);
+        const removeAttr = host.arrayAttr('aria-labelledby', this.id);
+        onCleanup(() => removeAttr());
+      }
+    });
   }
 }

@@ -1,13 +1,12 @@
 import { afterRenderEffect, computed, inject, signal, untracked } from '@angular/core';
-import { Behavior } from '@terseware/proto';
-import { ElementRenderer, injectElement, isNumber, isomorphicEffect } from '@terseware/utils';
+import { ProtoHost, Resolvable } from '@terseware/proto';
+import { isNumber } from '@terseware/utils';
 
 export type AnchorArrowAlign = 'top' | 'bottom' | 'left' | 'right';
 
-@Behavior()
+@Resolvable()
 export class AnchorArrow {
-  readonly #renderer = inject(ElementRenderer);
-  readonly #element = injectElement();
+  readonly #host = inject(ProtoHost);
 
   readonly size = signal<string | number>('8px');
   readonly align = signal<AnchorArrowAlign>('top');
@@ -23,22 +22,20 @@ export class AnchorArrow {
   readonly sizeHalf = computed(() => `calc(${this.size()} / 2)`);
 
   constructor() {
-    this.#renderer.setAttr(this.#element, 'aria-hidden', 'true');
+    this.#host.setAttr('aria-hidden', 'true');
 
-    isomorphicEffect({
-      write: () => {
-        const size = this.size();
-        const sizePx = isNumber(size) ? `${size}px` : size || '0px';
-        this.#renderer.styles(this.#element, {
-          position: 'absolute',
-          pointerEvents: 'none',
-          transform: 'rotate(45deg)',
-          width: sizePx,
-          height: sizePx,
-          left: this.left(),
-          top: this.top(),
-        });
-      },
+    this.#host.bindStyles(() => {
+      const size = this.size();
+      const sizePx = isNumber(size) ? `${size}px` : size || '0px';
+      return {
+        position: 'absolute',
+        pointerEvents: 'none',
+        transform: 'rotate(45deg)',
+        width: sizePx,
+        height: sizePx,
+        left: this.left(),
+        top: this.top(),
+      };
     });
 
     afterRenderEffect(onCleanup => {

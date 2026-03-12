@@ -1,23 +1,14 @@
-import type { Injector } from '@angular/core';
 import { computed, effect, inject, runInInjectionContext, signal, untracked } from '@angular/core';
 import type { FormField } from '@angular/forms/signals';
-import { FORM_FIELD } from '@angular/forms/signals';
-import { Behavior } from '@terseware/proto';
-import { Focus } from '@terseware/proto/focus';
-import { Hover } from '@terseware/proto/hover';
+import { FORM_FIELD, FormRoot } from '@angular/forms/signals';
+import { ProtoHost, Resolvable } from '@terseware/proto';
+import { FocusProto } from '@terseware/proto/focus';
+import { HoverProto } from '@terseware/proto/hover';
 import { InteractBehavior } from '@terseware/proto/interact';
 import { Press } from '@terseware/proto/press';
-import {
-  disposable,
-  ElementRenderer,
-  isomorphicEffect,
-  runInScope,
-  signalBind,
-  supportsRequiredAttribute,
-  unorderedComparator,
-} from '@terseware/utils';
-import { SignalSet } from 'ngxtension/collections';
-import { FormCtx } from './form-ctx';
+import { signalBind, supportsRequiredAttribute } from '@terseware/utils';
+import { FormProto } from './form-ctx';
+import type { ProtoFieldErrorStrategy } from './forms-di';
 import {
   installFieldDataAttributes,
   installFieldErrorDataAttributes,
@@ -25,50 +16,18 @@ import {
   shouldFieldErrorsBeVisible,
 } from './forms-di';
 import { RESOLVER } from './forms-resolver';
-import type { ProtoFieldDescription } from './proto-field-description';
-import type { ProtoFieldError } from './proto-field-error';
-import type { ProtoFieldLabel } from './proto-field-label';
 
-@Behavior()
-export class FieldCtx<T> {
-  readonly #renderer = inject(ElementRenderer);
-  readonly #field = inject<FormField<T>>(FORM_FIELD);
+@Resolvable()
+export class FieldProto<T> {
+  readonly #host = inject(ProtoHost);
+  readonly #field = inject<FormField<T>>(FORM_FIELD, { host: true });
   readonly #element = this.#field.element;
 
-  readonly id = this.#renderer.id(this.#field.element, 'field');
+  readonly id = this.#host.id('field');
   readonly state = this.#field.state;
-  readonly errorStrategy = signal(inject(PROTO_FIELD_ERROR_STRATEGY));
+  readonly errorStrategy = signal<ProtoFieldErrorStrategy<T>>(inject(PROTO_FIELD_ERROR_STRATEGY));
 
-  readonly #labels = new SignalSet<ProtoFieldLabel<T>>();
-  addLabel(label: ProtoFieldLabel<T>, injector?: Injector | null | undefined): () => void {
-    return disposable(this.addLabel, injector, () => {
-      this.#labels.add(label);
-      return () => this.#labels.delete(label);
-    });
-  }
-
-  readonly #errors = new SignalSet<ProtoFieldError<T>>();
-  addError(error: ProtoFieldError<T>, injector?: Injector | null | undefined): () => void {
-    return disposable(this.addError, injector, () => {
-      this.#errors.add(error);
-      return () => this.#errors.delete(error);
-    });
-  }
-
-  readonly #descriptions = new SignalSet<ProtoFieldDescription<T>>();
-  addDescription(
-    description: ProtoFieldDescription<T>,
-    injector?: Injector | null | undefined,
-  ): () => void {
-    return disposable(this.addDescription, injector, () => {
-      this.#descriptions.add(description);
-      return () => this.#descriptions.delete(description);
-    });
-  }
-
-  readonly formCtx = computed(() =>
-    runInInjectionContext(this.#field.injector, () => inject(FormCtx<T>)),
-  );
+  readonly formCtx = computed(() => this.#host.resolveOnParent(FormRoot<T>, FormProto<T>));
 
   readonly errorsVisible = computed(() =>
     shouldFieldErrorsBeVisible(this.errorStrategy(), this.state(), this.formCtx()),
@@ -79,57 +38,18 @@ export class FieldCtx<T> {
   constructor() {
     const interact = inject(InteractBehavior);
     signalBind(interact.disabled, () => this.state().disabled());
-    signalBind(inject(Hover).disabled, interact.disabled);
+    signalBind(inject(HoverProto).disabled, interact.disabled);
     signalBind(inject(Press).disabled, interact.disabled);
-    signalBind(inject(Focus).disabled, interact.hardDisabled); // Allow focus when focusable when disabled is true
+    signalBind(inject(FocusProto).disabled, interact.hardDisabled); // Allow focus when focusable when disabled is true
 
-    effect(onCleanup =>
-      runInScope(this.#field.injector, onCleanup, () => this.formCtx().addFieldCtx(this)),
-    );
+    installFieldDataAttributes(this.#element, () => this.state());
+    installFieldErrorDataAttributes(this.#element, () => this);
 
-    installFieldDataAttributes(() => this.state());
-    installFieldErrorDataAttributes(() => this);
-
-    isomorphicEffect({
-      write: () =>
-        this.#renderer.setAttr(this.#element, 'aria-invalid', this.errorsVisible() ? 'true' : null),
-    });
+    this.#host.bindAttr('aria-invalid', () => (this.errorsVisible() ? 'true' : null));
 
     if (!supportsRequiredAttribute(this.#element)) {
-      isomorphicEffect({
-        write: () =>
-          this.#renderer.setAttr(
-            this.#element,
-            'aria-required',
-            this.state().required() ? 'true' : null,
-          ),
-      });
+      this.#host.bindAttr('aria-required', () => (this.state().required() ? 'true' : null));
     }
-
-    isomorphicEffect({
-      earlyRead: computed(() => [...this.#labels.values()].map(label => label.id), {
-        equal: unorderedComparator,
-      }),
-      write: (idsSource, onCleanup) => {
-        const ids = idsSource();
-        runInScope(this.#field.injector, onCleanup, () =>
-          this.#renderer.disposableAttr(this.#element, 'aria-labelledby', ids),
-        );
-      },
-    });
-
-    isomorphicEffect({
-      earlyRead: computed(
-        () => [...this.#descriptions.values(), ...this.#errors.values()].map(item => item.id),
-        { equal: unorderedComparator },
-      ),
-      write: (idsSource, onCleanup) => {
-        const ids = idsSource();
-        runInScope(this.#field.injector, onCleanup, () =>
-          this.#renderer.disposableAttr(this.#element, 'aria-describedby', ids),
-        );
-      },
-    });
 
     effect(() => {
       const resolversMeta = this.state().metadata(RESOLVER);

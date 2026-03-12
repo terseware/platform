@@ -1,16 +1,10 @@
-import type { Injector } from '@angular/core';
+import type { EffectRef } from '@angular/core';
 import { inject, InjectionToken } from '@angular/core';
 import type { FieldState } from '@angular/forms/signals';
-import {
-  ElementRenderer,
-  injectElement,
-  isFunction,
-  isNil,
-  isomorphicEffect,
-} from '@terseware/utils';
-import { assertInjector } from 'ngxtension/assert-injector';
-import type { FieldCtx } from './field-ctx';
-import type { FormCtx } from './form-ctx';
+import { ProtoHost, ProtoResolver } from '@terseware/proto';
+import { isFunction, isNil } from '@terseware/utils';
+import type { FieldProto } from './field-ctx';
+import type { FormProto } from './form-ctx';
 
 export type ProtoFormDataAttributes<T = unknown> = Record<
   string,
@@ -37,28 +31,23 @@ export const PROTO_FORM_DATA_ATTRIBUTES = new InjectionToken<ProtoFormDataAttrib
 );
 
 export function installFieldDataAttributes<T>(
+  element: Element,
   state: () => FieldState<T> | null | undefined,
-  options?: {
-    dataAttributes?: ProtoFormDataAttributes<T> | null | undefined;
-    injector?: Injector | null | undefined;
-    element?: Element | null | undefined;
-  },
-): void {
-  return assertInjector(installFieldDataAttributes, options?.injector, () => {
-    const renderer = inject(ElementRenderer);
-    const dataAttributes = options?.dataAttributes ?? inject(PROTO_FORM_DATA_ATTRIBUTES);
-    const element = options?.element ?? injectElement();
-    for (const [attribute, condition] of Object.entries(dataAttributes)) {
-      isomorphicEffect({
-        write: () => {
-          const st = state();
-          if (st) {
-            renderer.setAttr(element, attribute, condition(st) ? '' : null);
-          }
+  options?: { dataAttributes?: ProtoFormDataAttributes<T> | null | undefined },
+): EffectRef {
+  const host = ProtoResolver.resolve(ProtoHost, element);
+  const dataAttributes = options?.dataAttributes ?? inject(PROTO_FORM_DATA_ATTRIBUTES);
+  return host.bindAttrs(
+    Object.fromEntries(
+      Object.entries(dataAttributes).map(([attribute, condition]) => [
+        attribute,
+        () => {
+          const s = state();
+          return s ? (condition(s) ? '' : null) : null;
         },
-      });
-    }
-  });
+      ]),
+    ),
+  );
 }
 
 export type ProtoFieldErrorStrategy<T> =
@@ -75,7 +64,7 @@ export const PROTO_FIELD_ERROR_STRATEGY = new InjectionToken<ProtoFieldErrorStra
 export function shouldFieldErrorsBeVisible<T>(
   strategy: ProtoFieldErrorStrategy<T>,
   state: FieldState<T>,
-  formCtx: FormCtx<T>,
+  formCtx: FormProto<T>,
 ): boolean {
   if (isFunction(strategy)) {
     return strategy(state);
@@ -90,22 +79,12 @@ export function shouldFieldErrorsBeVisible<T>(
 }
 
 export function installFieldErrorDataAttributes<T>(
-  fieldCtx: () => FieldCtx<T> | null | undefined,
-  options?: {
-    injector?: Injector | null | undefined;
-    element?: Element | null | undefined;
-  },
-): void {
-  return assertInjector(installFieldDataAttributes, options?.injector, () => {
-    const renderer = inject(ElementRenderer);
-    const element = options?.element ?? injectElement();
-    isomorphicEffect({
-      write: () => {
-        const ctx = fieldCtx();
-        if (ctx) {
-          renderer.setAttr(element, 'data-errors-visible', ctx.errorsVisible() ? '' : null);
-        }
-      },
-    });
+  element: Element,
+  fieldCtx: () => FieldProto<T> | null | undefined,
+): EffectRef {
+  const host = ProtoResolver.resolve(ProtoHost, element);
+  return host.bindAttr('data-errors-visible', () => {
+    const ctx = fieldCtx();
+    return ctx ? (ctx.errorsVisible() ? '' : null) : null;
   });
 }

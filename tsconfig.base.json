@@ -44,7 +44,6 @@
       "@terseware/proto/tooltip": ["packages/proto/tooltip/src/index.ts"],
       "@terseware/ui": ["packages/ui/src/index.ts"],
       "@terseware/ui/button": ["packages/ui/button/src/index.ts"],
-      "@terseware/ui/icon": ["packages/ui/icon/src/index.ts"],
       "@terseware/ui/theme": ["packages/ui/theme/src/index.ts"],
       "@terseware/ui/tooltip": ["packages/ui/tooltip/src/index.ts"],
       "@terseware/ui/utils": ["packages/ui/utils/src/index.ts"],

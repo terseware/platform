@@ -7,11 +7,11 @@ import {
   inject,
   input,
 } from '@angular/core';
+import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideMoon, lucideSun } from '@ng-icons/lucide';
 import { ButtonBehavior } from '@terseware/proto/button';
 import type { TerseButtonVariants } from '@terseware/ui/button';
 import { terseButtonVariants } from '@terseware/ui/button';
-import { TerseIcon, toTerseIcon } from '@terseware/ui/icon';
 import { TerseTooltip } from '@terseware/ui/tooltip';
 import { cn } from '@terseware/ui/utils';
 import { signalBind } from '@terseware/utils';
@@ -21,14 +21,18 @@ import { Theme } from './theme';
 @Component({
   selector: 'terse-theme-toggle',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TerseIcon],
   hostDirectives: [TerseTooltip],
+  imports: [NgIcon],
+  viewProviders: [provideIcons({ lucideSun, lucideMoon })],
   host: {
     'data-slot': 'button',
     '[class]': 'classValue()',
     '(click)': 'theme.toggleTheme()',
   },
-  template: `<svg [terseIcon]="terseIcon()"></svg><ng-content />`,
+  template: `
+    <ng-icon [name]="theme.theme() === 'dark' ? 'lucideSun' : 'lucideMoon'" />
+    <ng-content />
+  `,
 })
 export class TerseThemeToggle {
   readonly button = inject(ButtonBehavior);
@@ -38,12 +42,6 @@ export class TerseThemeToggle {
   readonly disabled = input<boolean, BooleanInput>(undefined, {
     transform: booleanAttribute,
   });
-
-  readonly terseIcon = computed(() =>
-    this.theme.theme() === 'dark'
-      ? toTerseIcon('Light Mode', lucideSun)
-      : toTerseIcon('Dark Mode', lucideMoon),
-  );
 
   readonly variant = input<TerseButtonVariants['variant']>('ghost');
   readonly size = input<TerseButtonVariants['size']>('icon');

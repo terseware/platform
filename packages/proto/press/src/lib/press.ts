@@ -1,12 +1,11 @@
-import { inject, Injector, signal } from '@angular/core';
-import { Behavior } from '@terseware/proto';
-import { ElementRenderer, injectElement, isomorphicEffect, onDestroy } from '@terseware/utils';
+import { inject, signal } from '@angular/core';
+import { ProtoHost, Resolvable } from '@terseware/proto';
+import { injectElement, onDestroy } from '@terseware/utils';
 
-@Behavior()
+@Resolvable()
 export class Press {
-  readonly #injector = inject(Injector);
   readonly #element = injectElement();
-  readonly #renderer = inject(ElementRenderer);
+  readonly #host = inject(ProtoHost);
 
   readonly disabled = signal(false);
 
@@ -14,10 +13,7 @@ export class Press {
   readonly isPressed = this.#isPressed.asReadonly();
 
   constructor() {
-    isomorphicEffect({
-      earlyRead: () => !this.disabled() && this.#isPressed(),
-      write: pressed => this.#renderer.setAttr(this.#element, 'data-press', pressed() ? '' : null),
-    });
+    this.#host.bindAttr('data-press', () => (!this.disabled() && this.#isPressed() ? '' : null));
 
     let disposableListeners: (() => void)[] = [];
     onDestroy(() => disposableListeners.forEach(dispose => dispose()));
@@ -29,7 +25,9 @@ export class Press {
       }
     };
 
-    this.#renderer.listen(this.#element, 'pointerdown', () => {
+    this.#host.on('pointerdown', ({ event, next }) => {
+      next(event);
+
       if (this.disabled()) {
         return;
       }
@@ -37,19 +35,12 @@ export class Press {
       disposableListeners.forEach(dispose => dispose());
       this.#isPressed.set(true);
       disposableListeners = [
-        this.#renderer.listen('document', 'pointerup', () => reset(), { injector: this.#injector }),
-        this.#renderer.listen(
-          'document',
+        this.#host.docEvent('pointerup', () => reset()),
+        this.#host.docEvent(
           'pointermove',
-          event =>
-            this.#element !== event.target &&
-            !this.#element.contains(event.target as Node) &&
-            reset(),
-          { injector: this.#injector },
+          e => this.#element !== e.target && !this.#element.contains(e.target as Node) && reset(),
         ),
-        this.#renderer.listen('document', 'pointercancel', () => reset(), {
-          injector: this.#injector,
-        }),
+        this.#host.docEvent('pointercancel', () => reset()),
       ];
     });
   }

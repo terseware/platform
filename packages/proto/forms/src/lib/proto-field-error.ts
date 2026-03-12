@@ -1,16 +1,8 @@
-import {
-  computed,
-  Directive,
-  effect,
-  inject,
-  Injector,
-  input,
-  runInInjectionContext,
-} from '@angular/core';
+import { computed, Directive, effect, inject, input, runInInjectionContext } from '@angular/core';
 import type { FieldState, ValidationError } from '@angular/forms/signals';
-import { ElementRenderer, injectElement, runInScope } from '@terseware/utils';
-import { FieldCtx } from './field-ctx';
-import { installFieldDataAttributes, installFieldErrorDataAttributes } from './forms-di';
+import { ProtoHost, ProtoResolver } from '@terseware/proto';
+import { FieldProto } from './field-ctx';
+import { installFieldDataAttributes } from './forms-di';
 
 @Directive({
   selector: '[protoFieldError]',
@@ -25,11 +17,9 @@ import { installFieldDataAttributes, installFieldErrorDataAttributes } from './f
   },
 })
 export class ProtoFieldError<T> {
-  readonly #injector = inject(Injector);
-  readonly #element = injectElement();
-  readonly #renderer = inject(ElementRenderer);
+  readonly #host = inject(ProtoHost);
 
-  readonly id = this.#renderer.id(this.#element, 'field-error');
+  readonly id = this.#host.id('field-error');
   readonly error = input.required<ValidationError.WithFieldTree>({
     alias: 'protoFieldError',
   });
@@ -39,12 +29,12 @@ export class ProtoFieldError<T> {
     return this.error()
       .fieldTree()
       .formFieldBindings()
-      .map(field => runInInjectionContext(field.injector, () => inject(FieldCtx<T>)));
+      .map(field => runInInjectionContext(field.injector, () => inject(FieldProto<T>)));
   });
 
   readonly triedSubmitting = computed(() => {
     for (const field of this.error().fieldTree().formFieldBindings()) {
-      const context = runInInjectionContext(field.injector, () => inject(FieldCtx<T>));
+      const context = runInInjectionContext(field.injector, () => inject(FieldProto<T>));
       if (context.triedSubmitting()) {
         return true;
       }
@@ -55,13 +45,14 @@ export class ProtoFieldError<T> {
   readonly visible = computed(() => this.contexts().some(context => context.errorsVisible()));
 
   constructor() {
+    installFieldDataAttributes<T>(this.#host.element, () => this.state());
+
     effect(onCleanup => {
-      for (const context of this.contexts()) {
-        runInScope(this.#injector, onCleanup, () => context.addError(this));
+      for (const field of this.state().formFieldBindings()) {
+        const host = ProtoResolver.resolve(ProtoHost, field.element);
+        const removeAttr = host.arrayAttr('aria-describedby', this.id);
+        onCleanup(() => removeAttr());
       }
     });
-
-    installFieldDataAttributes<T>(() => this.state());
-    installFieldErrorDataAttributes(() => this.contexts()[0]);
   }
 }

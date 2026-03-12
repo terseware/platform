@@ -1,48 +1,30 @@
-import { computed, inject, Injector, runInInjectionContext, signal } from '@angular/core';
-import type { FormField } from '@angular/forms/signals';
+import { computed, inject, signal } from '@angular/core';
 import { FORM_FIELD, FormRoot } from '@angular/forms/signals';
-import { Behavior } from '@terseware/proto';
-import { disposable, ElementRenderer, injectElement, isNode } from '@terseware/utils';
-import { SignalSet } from 'ngxtension/collections';
-import type { FieldCtx } from './field-ctx';
+import { ProtoHost, Resolvable } from '@terseware/proto';
+import { HoverProto } from '@terseware/proto/hover';
+import { injectElement, isNode } from '@terseware/utils';
 import { installFieldDataAttributes } from './forms-di';
 
-@Behavior()
-export class FormCtx<T> {
-  readonly #injector = inject(Injector);
-  readonly #renderer = inject(ElementRenderer);
+@Resolvable({ inherit: true, explicit: true })
+export class FormProto<T> {
+  readonly #host = inject(ProtoHost);
+  readonly formRoot = inject(FormRoot<T>);
 
-  readonly formRoot = computed(() =>
-    runInInjectionContext(
-      this.#injector,
-      () =>
-        inject(FormRoot<T>, { optional: true })?.fieldTree() ??
-        inject<FormField<T>>(FORM_FIELD).field()().fieldTree,
-    ),
-  );
-
-  readonly state = computed(() => this.formRoot()());
+  readonly state = computed(() => this.formRoot.fieldTree()());
   readonly element = injectElement();
 
   readonly #triedSubmitting = signal(false);
   readonly triedSubmitting = this.#triedSubmitting.asReadonly();
 
-  readonly #fieldCtxs = new SignalSet<FieldCtx<T>>();
-  addFieldCtx(fieldCtx: FieldCtx<T>, injector?: Injector | null | undefined): () => void {
-    return disposable(this.addFieldCtx, injector, () => {
-      this.#fieldCtxs.add(fieldCtx);
-      return () => this.#fieldCtxs.delete(fieldCtx);
-    });
-  }
-
   constructor() {
+    inject(HoverProto);
     // Don't install data attributes if the root element is also a form field
     // since form fields are already installed with data attributes
     if (!inject(FORM_FIELD, { optional: true, host: true })) {
-      installFieldDataAttributes(() => this.state());
+      installFieldDataAttributes(this.#host.element, () => this.state().fieldTree());
     }
 
-    this.#renderer.listen('document', 'submit', event => {
+    this.#host.docEvent('submit', event => {
       const triedSubmit = isNode(event.target) && event.target.contains(this.element);
       if (triedSubmit) {
         this.#triedSubmitting.set(true);

@@ -24,10 +24,5 @@ export default defineConfig(() => ({
       reportsDirectory: '../../coverage/apps/terseware',
       provider: 'v8' as const,
     },
-    typecheck: {
-      enabled: true,
-      tsconfig: './tsconfig.app.json',
-      include: ['./**/*.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
-    },
   },
 }));

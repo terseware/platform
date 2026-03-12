@@ -1,6 +1,7 @@
 import type { CreateEffectOptions, EffectRef, Injector, WritableSignal } from '@angular/core';
 import { computed, effect, untracked } from '@angular/core';
 import { computedPrevious } from 'ngxtension/computed-previous';
+import { isUndefined } from './validators';
 
 /** Listen for changes to a signal and call a function when the signal changes.*/
 export function onChange<const T>(
@@ -30,9 +31,14 @@ export function onBoolChange(
 /** Bind a writable signal to a reactive source. */
 export function signalBind<const T>(
   target: WritableSignal<T>,
-  source: () => T,
+  source: () => NoInfer<T> | undefined,
   options?: CreateEffectOptions,
 ): EffectRef {
   const value = computed(() => source());
-  return effect(() => target.set(value()), options);
+  return effect(() => {
+    const v = value();
+    if (!isUndefined(v)) {
+      target.set(v);
+    }
+  }, options);
 }

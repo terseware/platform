@@ -2,8 +2,8 @@ import type { FocusOrigin } from '@angular/cdk/a11y';
 import { FocusMonitor } from '@angular/cdk/a11y';
 import { computed, inject, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { Behavior } from '@terseware/proto';
-import { ElementRenderer, injectElement, isNull, isomorphicEffect } from '@terseware/utils';
+import { ProtoHost, Resolvable } from '@terseware/proto';
+import { isNull } from '@terseware/utils';
 import { combineLatest, of, switchMap } from 'rxjs';
 
 /**
@@ -38,10 +38,9 @@ function shouldShowFocusVisible(origin: FocusOrigin, element: HTMLElement): bool
   return alwaysShowFocus(element);
 }
 
-@Behavior()
-export class Focus {
-  readonly #element = injectElement();
-  readonly #renderer = inject(ElementRenderer);
+@Resolvable()
+export class FocusProto {
+  readonly #host = inject(ProtoHost);
   readonly #focusMonitor = inject(FocusMonitor);
 
   readonly disabled = signal(false);
@@ -53,7 +52,7 @@ export class Focus {
   readonly focusOrigin = toSignal(
     combineLatest([this.#disabled$, this.#checkChildren$]).pipe(
       switchMap(([disabled, checkChildren]) =>
-        disabled ? of(null) : this.#focusMonitor.monitor(this.#element, checkChildren),
+        disabled ? of(null) : this.#focusMonitor.monitor(this.#host.element, checkChildren),
       ),
     ),
     { initialValue: null },
@@ -61,35 +60,26 @@ export class Focus {
 
   readonly isFocused = computed(() => !isNull(this.focusOrigin()));
   readonly isFocusVisible = computed(() =>
-    shouldShowFocusVisible(this.focusOrigin(), this.#element),
+    shouldShowFocusVisible(this.focusOrigin(), this.#host.element),
   );
 
   constructor() {
-    isomorphicEffect({
-      earlyRead: () => !this.disabled() && this.isFocused(),
-      write: focused => this.#renderer.setAttr(this.#element, 'data-focus', focused() ? '' : null),
-    });
-    isomorphicEffect({
-      earlyRead: () => (this.disabled() ? null : this.focusOrigin()),
-      write: focusOrigin =>
-        this.#renderer.setAttr(this.#element, 'data-focus-origin', focusOrigin()),
-    });
-    isomorphicEffect({
-      earlyRead: () => !this.disabled() && this.isFocusVisible(),
-      write: focusVisible =>
-        this.#renderer.setAttr(this.#element, 'data-focus-visible', focusVisible() ? '' : null),
-    });
+    this.#host.bindAttr('data-focus', () => (!this.disabled() && this.isFocused() ? '' : null));
+    this.#host.bindAttr('data-focus-origin', () => (this.disabled() ? null : this.focusOrigin()));
+    this.#host.bindAttr('data-focus-visible', () =>
+      !this.disabled() && this.isFocusVisible() ? '' : null,
+    );
   }
 
   focus(origin: FocusOrigin = 'program', focusOptions?: FocusOptions): void {
     if (origin) {
-      this.#focusMonitor.focusVia(this.#element, origin, focusOptions);
+      this.#focusMonitor.focusVia(this.#host.element, origin, focusOptions);
     } else {
-      this.#element.focus(focusOptions);
+      this.#host.element.focus(focusOptions);
     }
   }
 
   blur(): void {
-    this.#element.blur();
+    this.#host.element.blur();
   }
 }

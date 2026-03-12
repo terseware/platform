@@ -1,24 +1,26 @@
 import { Directive, inject } from '@angular/core';
-import { Behavior } from '@terseware/proto';
-import { ElementRenderer, injectElement } from '@terseware/utils';
-import { MenuTrigger } from './menu-trigger';
+import { ProtoHost, Resolvable } from '@terseware/proto';
+import { onDestroy } from '@terseware/utils';
+import { MenuTriggerProto } from './menu-trigger';
 
-@Behavior()
-export class Menu {
-  readonly element = injectElement();
-  readonly #renderer = inject(ElementRenderer);
-  readonly ctx = inject(MenuTrigger);
-  readonly id = this.#renderer.id(this.element, 'menu');
+@Resolvable()
+export class MenuProto {
+  readonly #host = inject(ProtoHost);
+  readonly element = this.#host.element;
+  readonly ctx = inject(MenuTriggerProto, { skipSelf: true });
+  readonly id = this.#host.id('menu');
 
   constructor() {
-    this.ctx.setMenu(this);
-    this.#renderer.setAttr(this.element, 'role', 'menu');
+    const removeMenu = this.ctx.setMenu(this);
+    onDestroy(() => removeMenu());
+
+    this.#host.setAttr('role', 'menu');
 
     // Set aria-labelledby to reference the trigger element
-    this.#renderer.setAttr(this.element, 'aria-labelledby', this.ctx.triggerId);
+    this.#host.bindAttr('aria-labelledby', () => this.ctx.triggerId);
 
     // Close on focusout when focus moves outside the menu
-    this.#renderer.listen(this.element, 'focusout', event => {
+    this.#host.on('focusout', ({ event, next }) => {
       const related = event.relatedTarget as Node | null;
       if (!this.ctx.expanded()) {
         return;
@@ -29,13 +31,14 @@ export class Menu {
         return;
       }
 
-      if (related.contains(this.ctx.element)) {
+      if (related.contains(this.#host.element)) {
         return;
       }
 
-      if (!this.element.contains(related)) {
+      if (!this.#host.element.contains(related)) {
         this.ctx.expanded.set(false);
       }
+      next(event);
     });
   }
 }
@@ -45,5 +48,5 @@ export class Menu {
   exportAs: 'protoMenu',
 })
 export class ProtoMenu {
-  readonly menu = inject(Menu);
+  readonly menu = inject(MenuProto);
 }

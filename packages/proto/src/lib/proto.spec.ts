@@ -10,10 +10,11 @@ import {
 } from '@angular/core';
 import { injectElement } from '@terseware/utils';
 import { fireEvent, render, screen } from '@testing-library/angular';
-import { Behavior, ProtoHost } from './proto';
+import { ProtoHost } from './proto-host';
+import { Resolvable } from './proto-resolve';
 
 describe('Proto', () => {
-  @Behavior()
+  @Resolvable()
   class InteractBehavior {
     readonly element = injectElement();
 
@@ -27,7 +28,7 @@ describe('Proto', () => {
     constructor() {
       const ctx = inject(ProtoHost);
 
-      ctx.on('keydown', (event, next) => {
+      ctx.on('keydown', ({ event, next }) => {
         if (this.softDisabled() && event.key !== 'Tab') {
           event.preventDefault();
         }
@@ -36,7 +37,7 @@ describe('Proto', () => {
     }
   }
 
-  @Behavior()
+  @Resolvable()
   class ButtonBehavior {
     readonly interact = inject(InteractBehavior);
 
@@ -45,7 +46,7 @@ describe('Proto', () => {
     constructor() {
       const ctx = inject(ProtoHost);
 
-      ctx.on('keydown', (event, next) => {
+      ctx.on('keydown', ({ event, next }) => {
         if (this.interact.disabled()) {
           return;
         }
@@ -112,10 +113,10 @@ describe('Proto', () => {
     it('should call handlers in registration order (first registered = outermost)', async () => {
       const order: string[] = [];
 
-      @Behavior()
+      @Resolvable()
       class AProto {
         constructor() {
-          inject(ProtoHost).on('click', (event, next) => {
+          inject(ProtoHost).on('click', ({ event, next }) => {
             order.push('A:before');
             next.event('click', event);
             order.push('A:after');
@@ -123,11 +124,11 @@ describe('Proto', () => {
         }
       }
 
-      @Behavior()
+      @Resolvable()
       class BProto {
         readonly a = inject(AProto);
         constructor() {
-          inject(ProtoHost).on('click', (event, next) => {
+          inject(ProtoHost).on('click', ({ event, next }) => {
             order.push('B:before');
             next.event('click', event);
             order.push('B:after');
@@ -159,10 +160,10 @@ describe('Proto', () => {
     it('should stop downstream handlers when preventProtoHandler is called', async () => {
       const called: string[] = [];
 
-      @Behavior()
+      @Resolvable()
       class BlockerProto {
         constructor() {
-          inject(ProtoHost).on('click', event => {
+          inject(ProtoHost).on('click', ({ event }) => {
             called.push('blocker');
             event.preventProtoHandler();
             // intentionally does NOT call next
@@ -170,13 +171,13 @@ describe('Proto', () => {
         }
       }
 
-      @Behavior()
+      @Resolvable()
       class DownstreamProto {
         readonly blocker = inject(BlockerProto);
         constructor() {
-          inject(ProtoHost).on('click', (event, next) => {
+          inject(ProtoHost).on('click', ({ event, next }) => {
             called.push('downstream');
-            next.event('click', event);
+            next(event);
           });
         }
       }
@@ -201,11 +202,12 @@ describe('Proto', () => {
     it('should not fire Angular host listener when preventProtoHandler is called', async () => {
       const hostListenerCalled = signal(false);
 
-      @Behavior()
+      @Resolvable()
       class BlockerProto {
         constructor() {
-          inject(ProtoHost).on('click', (event, _next) => {
+          inject(ProtoHost).on('click', ({ event, next }) => {
             event.preventProtoHandler();
+            next(event);
           });
         }
       }
@@ -238,15 +240,15 @@ describe('Proto', () => {
     it('should dispatch click pipeline from keydown handler', async () => {
       const clickFired = signal(false);
 
-      @Behavior()
+      @Resolvable()
       class CrossProto {
         constructor() {
           const ctx = inject(ProtoHost);
-          ctx.on('click', (event, next) => {
+          ctx.on('click', ({ event, next }) => {
             clickFired.set(true);
             next.event('click', event);
           });
-          ctx.on('keydown', (event, next) => {
+          ctx.on('keydown', ({ event, next }) => {
             if (event.key === 'Enter') {
               next.event('click', event);
               return;
@@ -276,15 +278,15 @@ describe('Proto', () => {
     it('should not mutate handler order on repeated cross-channel dispatch', async () => {
       const callCounts = { click: 0 };
 
-      @Behavior()
+      @Resolvable()
       class RepeatProto {
         constructor() {
           const ctx = inject(ProtoHost);
-          ctx.on('click', (event, next) => {
+          ctx.on('click', ({ event, next }) => {
             callCounts.click++;
             next.event('click', event);
           });
-          ctx.on('keydown', (event, next) => {
+          ctx.on('keydown', ({ event, next }) => {
             next.event('click', event);
           });
         }
@@ -316,11 +318,11 @@ describe('Proto', () => {
 
   describe('per-element isolation', () => {
     it('should give each element its own ProtoHostContext and Proto instances', async () => {
-      @Behavior()
+      @Resolvable()
       class CounterProto {
         readonly count = signal(0);
         constructor() {
-          inject(ProtoHost).on('click', (event, next) => {
+          inject(ProtoHost).on('click', ({ event, next }) => {
             this.count.update(c => c + 1);
             next.event('click', event);
           });

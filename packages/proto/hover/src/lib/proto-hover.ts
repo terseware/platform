@@ -1,14 +1,14 @@
 import type { BooleanInput } from '@angular/cdk/coercion';
 import { booleanAttribute, Directive, inject, input, output } from '@angular/core';
 import { onChange, signalBind } from '@terseware/utils';
-import { Hover } from './hover';
+import { HoverProto } from './hover';
 
 @Directive({
   selector: '[protoHover]',
   exportAs: 'protoHover',
 })
 export class ProtoHover {
-  readonly #hover = inject(Hover);
+  readonly #hover = inject(HoverProto);
 
   readonly disabled = input<boolean, BooleanInput>(this.#hover.disabled(), {
     transform: booleanAttribute,

@@ -18,22 +18,14 @@ import {
   viewChild,
   ViewContainerRef,
 } from '@angular/core';
-import { Behavior, ProtoHost } from '@terseware/proto';
+import { ProtoHost, Resolvable } from '@terseware/proto';
 import { Anchor } from '@terseware/proto/anchor';
 import { ButtonBehavior } from '@terseware/proto/button';
-import { Hover } from '@terseware/proto/hover';
-import {
-  disposable,
-  ElementRenderer,
-  injectElement,
-  isomorphicEffect,
-  onChange,
-  runInScope,
-  signalBind,
-} from '@terseware/utils';
+import { HoverProto } from '@terseware/proto/hover';
+import { injectElement, isomorphicEffect, onChange, onDestroy, signalBind } from '@terseware/utils';
 import { SignalSet } from 'ngxtension/collections';
-import type { Menu } from './menu';
-import type { MenuItem } from './menu-item';
+import type { MenuProto } from './menu';
+import type { MenuItemProto } from './menu-item';
 
 type MenuOrigin = 'top' | 'bottom' | 'left' | 'right';
 
@@ -66,10 +58,10 @@ const sideFlip: Record<string, string> = {
   right: 'left',
 };
 
-export type MenuContent = Type<object> | TemplateRef<{ $implicit: MenuTrigger }>;
+export type MenuContent = Type<object> | TemplateRef<{ $implicit: MenuTriggerProto }>;
 
-@Behavior()
-export class MenuTrigger {
+@Resolvable({ inherit: true })
+export class MenuTriggerProto {
   readonly #vcr = inject(ViewContainerRef);
   readonly #injector = inject(Injector);
   readonly #host = inject(ProtoHost);
@@ -96,36 +88,27 @@ export class MenuTrigger {
   readonly align = signal<MenuSide>(this.side());
   readonly alignOrigin = computed(() => (this.align().split(' ')[0] || 'left') as MenuOrigin);
 
-  readonly #menu = signal<Menu | null>(null);
+  readonly #menu = signal<MenuProto | null>(null);
   readonly menu = this.#menu.asReadonly();
-  setMenu(menu: Menu, injector?: Injector | null | undefined): () => void {
-    return disposable(this.setMenu, injector, () => {
-      this.#menu.set(menu);
-      return () => this.#menu.set(null);
-    });
+  setMenu(menu: MenuProto): () => void {
+    this.#menu.set(menu);
+    return () => this.#menu.set(null);
   }
 
-  readonly #menuContainer = signal<MenuContainer | null>(null);
+  readonly #menuContainer = signal<ProtoMenuContainer | null>(null);
   readonly menuContainer = this.#menuContainer.asReadonly();
-  setMenuContainer(
-    menuContainer: MenuContainer,
-    injector?: Injector | null | undefined,
-  ): () => void {
-    return disposable(this.setMenuContainer, injector, () => {
-      this.#menuContainer.set(menuContainer);
-      return () => this.#menuContainer.set(null);
-    });
+  setMenuContainer(menuContainer: ProtoMenuContainer): () => void {
+    this.#menuContainer.set(menuContainer);
+    return () => this.#menuContainer.set(null);
   }
 
-  readonly #items = new SignalSet<MenuItem>();
+  readonly #items = new SignalSet<MenuItemProto>();
   readonly items = computed(() =>
     [...this.#items.values()].filter(item => !item.button.interact.hardDisabled()),
   );
-  addItem(item: MenuItem, injector?: Injector | null | undefined): () => void {
-    return disposable(this.addItem, injector, () => {
-      this.#items.add(item);
-      return () => this.#items.delete(item);
-    });
+  addItem(item: MenuItemProto): () => void {
+    this.#items.add(item);
+    return () => this.#items.delete(item);
   }
 
   readonly activeItem = linkedSignal(
@@ -139,14 +122,18 @@ export class MenuTrigger {
     // Immediately close the menu upon disabling
     onChange(this.menuDisabled, d => d && this.close());
 
+    this.button.isComposite.set(true);
     signalBind(this.button.interact.tabIndex, () =>
       this.expanded() && this.activeItem() ? -1 : 0,
     );
 
     // const debounceTimeout: ReturnType<typeof setTimeout> | null = null;
 
-    this.#host.on('click', () => this.toggle());
-    this.#host.on('keydown', (event, next) => {
+    this.#host.on('click', ({ event, next }) => {
+      this.toggle();
+      next(event);
+    });
+    this.#host.on('keydown', ({ event, next }) => {
       switch (event.key) {
         case 'Escape':
           this.close();
@@ -184,36 +171,14 @@ export class MenuTrigger {
       next(event);
     });
 
-    // this.button.interact.keyboardManager
-    //   .on('ArrowDown', () => this.open('first'))
-    //   .on('ArrowUp', () => this.open('last'))
-    //   .on('Escape', () => this.close())
-    //   .on('Enter', () => this.open(this.align().endsWith('bottom') ? 'first' : 'last'))
-    //   .on(' ', () => this.open(this.align().endsWith('bottom') ? 'first' : 'last'), {
-    //     stopPropagation: true,
-    //   })
-    //   .on(
-    //     'ArrowRight',
-    //     () =>
-    //       this.expanded() &&
-    //       this.alignOrigin() === 'right' &&
-    //       this.open(this.align().endsWith('bottom') ? 'first' : 'last'),
-    //   )
-    //   .on(
-    //     'ArrowLeft',
-    //     () =>
-    //       this.expanded() &&
-    //       this.alignOrigin() === 'left' &&
-    //       this.open(this.align().endsWith('bottom') ? 'first' : 'last'),
-    //   );
-
     this.#host.bindAttr('aria-expanded', () => `${this.expanded()}`);
     this.#host.setAttr('aria-haspopup', 'menu');
 
     isomorphicEffect({
       write: onCleanup => {
         const id = this.menu()?.id || null;
-        runInScope(this.#injector, onCleanup, () => this.#host.arrayAttr('aria-controls', id));
+        const removeAttr = this.#host.arrayAttr('aria-controls', id);
+        onCleanup(() => removeAttr());
       },
     });
 
@@ -221,7 +186,7 @@ export class MenuTrigger {
       if (this.menuDisabled() || !this.content() || !this.expanded()) {
         return;
       }
-      const container = this.#vcr.createComponent(MenuContainer, { injector: this.#injector });
+      const container = this.#vcr.createComponent(ProtoMenuContainer, { injector: this.#injector });
       onCleanup(() => container.destroy());
     });
 
@@ -247,7 +212,7 @@ export class MenuTrigger {
     });
 
     // Close on focusout when focus moves outside the trigger and menu
-    this.#host.on('focusout', (event, next) => {
+    this.#host.on('focusout', ({ event, next }) => {
       const related = event.relatedTarget as Node | null;
       if (!this.expanded()) {
         return;
@@ -401,19 +366,19 @@ export class MenuTrigger {
     }
   `,
 })
-class MenuContainer {
+class ProtoMenuContainer {
   readonly #element = injectElement();
-  readonly #renderer = inject(ElementRenderer);
+  readonly #host = inject(ProtoHost);
   readonly #injector = inject(Injector);
   readonly vcr = viewChild('vcr', { read: ViewContainerRef });
-  readonly ctx = inject(MenuTrigger);
-  readonly hover = inject(Hover);
+  readonly ctx = inject(MenuTriggerProto, { skipSelf: true });
+  readonly hover = inject(HoverProto);
 
   readonly triggerAnchorName = this.ctx.anchorName;
   readonly menuAnchorName = `${this.ctx.anchorName}-menu` as const;
 
   constructor() {
-    this.ctx.setMenuContainer(this);
+    onDestroy(this.ctx.setMenuContainer(this));
 
     effect(onCleanup => {
       const expanded = this.ctx.expanded();
@@ -434,16 +399,12 @@ class MenuContainer {
       });
     });
 
-    isomorphicEffect({
-      write: () => {
-        this.#renderer.styles(this.#element, {
-          anchorName: this.menuAnchorName,
-          positionAnchor: this.ctx.anchorName,
-          positionArea: this.ctx.side(),
-          [`margin-${sideFlip[this.ctx.align().split(' ')[0] || 'left']}`]: this.ctx.offset(),
-        });
-      },
-    });
+    this.#host.bindStyles(() => ({
+      anchorName: this.menuAnchorName,
+      positionAnchor: this.ctx.anchorName,
+      positionArea: this.ctx.side(),
+      [`margin-${sideFlip[this.ctx.align().split(' ')[0] || 'left']}`]: this.ctx.offset(),
+    }));
 
     afterEveryRender(() => {
       const style = getComputedStyle(this.#element) as { positionArea?: MenuSide };
@@ -457,7 +418,7 @@ class MenuContainer {
   exportAs: 'protoMenuTrigger',
 })
 export class ProtoMenuTrigger {
-  readonly ctx = inject(MenuTrigger);
+  readonly ctx = inject(MenuTriggerProto);
 
   readonly disabled = input<boolean, BooleanInput>(false, {
     transform: booleanAttribute,

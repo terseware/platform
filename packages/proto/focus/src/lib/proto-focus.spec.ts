@@ -3,7 +3,7 @@ import { FocusMonitor } from '@angular/cdk/a11y';
 import { ChangeDetectionStrategy, Component, Directive, signal, viewChild } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { render, screen } from '@testing-library/angular';
-import { Focus } from './focus';
+import { FocusProto } from './focus';
 import { ProtoFocus } from './proto-focus';
 
 describe('ProtoFocus', () => {
@@ -17,7 +17,7 @@ describe('ProtoFocus', () => {
   })
   class TestFocusBasic {
     readonly focus = viewChild.required(ProtoFocus);
-    readonly focusState = viewChild.required(Focus);
+    readonly focusState = viewChild.required(FocusProto);
   }
 
   @Component({

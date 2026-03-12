@@ -1,17 +1,16 @@
 import { inject } from '@angular/core';
-import { Behavior } from '@terseware/proto';
-import { ElementRenderer, injectElement, uniqueId } from '@terseware/utils';
+import { ProtoHost, Resolvable } from '@terseware/proto';
+import { uniqueId } from '@terseware/utils';
 
 export type AnchorName = `--${string}`;
 
-@Behavior()
+@Resolvable()
 export class Anchor {
-  readonly #element = injectElement();
-  readonly #renderer = inject(ElementRenderer);
+  readonly #host = inject(ProtoHost);
 
   readonly name: AnchorName = `--${uniqueId('anchor')}`;
 
   constructor() {
-    this.#renderer.setStyle(this.#element, 'anchorName', this.name);
+    this.#host.bindStyle('anchorName', () => this.name);
   }
 }

@@ -1,14 +1,20 @@
 import {
+  booleanAttribute,
   ChangeDetectionStrategy,
   Component,
   Directive,
   getDebugNode,
+  inject,
+  input,
+  numberAttribute,
   signal,
   viewChild,
 } from '@angular/core';
 import { fireEvent, render, screen } from '@testing-library/angular';
 
-import { ProtoButton } from '@terseware/proto/button';
+import type { BooleanInput, NumberInput } from '@angular/cdk/coercion';
+import { ButtonBehavior } from '@terseware/proto/button';
+import { signalBind } from '@terseware/utils';
 import { ProtoMenu } from './menu';
 import { ProtoMenuItem } from './menu-item';
 import { ProtoMenuTrigger } from './menu-trigger';
@@ -36,15 +42,34 @@ function getMenuItemDirective(element: HTMLElement): ProtoMenuItem | null {
 // Note: ProtoMenuItem does not have ProtoButton as a host directive by default and design for composability reasons.
 @Directive({
   selector: '[testMenuItem]',
-  hostDirectives: [
-    ProtoMenuItem,
-    {
-      directive: ProtoButton,
-      inputs: ['disabled', 'focusableWhenDisabled', 'tabIndex'],
-    },
-  ],
 })
-class TestMenuItem {}
+class TestMenuItem {
+  readonly button = inject(ButtonBehavior);
+
+  readonly disabled = input<boolean, BooleanInput>(this.button.interact.disabled(), {
+    transform: booleanAttribute,
+  });
+
+  readonly focusableWhenDisabled = input<boolean, BooleanInput>(
+    this.button.interact.focusableWhenDisabled(),
+    { transform: booleanAttribute },
+  );
+
+  readonly tabIndex = input<number, NumberInput>(this.button.interact.tabIndex(), {
+    transform: value => numberAttribute(value, this.button.interact.tabIndex()),
+  });
+
+  readonly role = input<string | null>(this.button.role());
+  readonly type = input<string | null>(this.button.type());
+
+  constructor() {
+    signalBind(this.button.interact.disabled, this.disabled);
+    signalBind(this.button.interact.focusableWhenDisabled, this.focusableWhenDisabled);
+    signalBind(this.button.interact.tabIndex, this.tabIndex);
+    signalBind(this.button.role, this.role);
+    signalBind(this.button.type, this.type);
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Test host components
