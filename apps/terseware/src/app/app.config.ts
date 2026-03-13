@@ -7,12 +7,12 @@ import {
 } from '@angular/core';
 import { provideClientHydration, withIncrementalHydration } from '@angular/platform-browser';
 import { provideRouter } from '@angular/router';
-import { provideProto } from '@terseware/proto';
+import { provideProtoEvents } from '@terseware/proto';
 import { AppErrorHandler } from './app-error-handler';
 
 export const appConfig: ApplicationConfig = {
   providers: [
-    provideProto(),
+    provideProtoEvents(),
     provideBrowserGlobalErrorListeners(),
     { provide: ErrorHandler, useClass: AppErrorHandler },
     provideCheckNoChangesConfig({ exhaustive: true }),

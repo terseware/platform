@@ -1,5 +1,5 @@
 import { DOCUMENT, inject, Injectable, signal } from '@angular/core';
-import { ProtoHost, Resolvable } from '@terseware/proto';
+import { on, ProtoHost, Resolvable } from '@terseware/proto';
 
 // ── Global touch detection ──────────────────────────────────────────────────
 // Tracks whether emulated mouse events should be globally ignored.
@@ -57,27 +57,27 @@ export class HoverProto {
   constructor() {
     this.#host.bindAttr('data-hover', () => (!this.disabled() && this.isHovered() ? '' : null));
 
-    this.#host.on('pointerenter', ({ event, next }) => {
+    on('pointerenter', ({ event, next }) => {
       !this.disabled() && this.#onPointerEnter(event);
       next(event);
     });
 
-    this.#host.on('pointerleave', ({ event, next }) => {
+    on('pointerleave', ({ event, next }) => {
       !this.disabled() && this.#onPointerLeave(event);
       next(event);
     });
 
-    this.#host.on('touchstart', ({ event, next }) => {
+    on('touchstart', ({ event, next }) => {
       !this.disabled() && this.#onTouchStart();
       next(event);
     });
 
-    this.#host.on('mouseenter', ({ event, next }) => {
+    on('mouseenter', ({ event, next }) => {
       !this.disabled() && this.#onMouseEnter(event);
       next(event);
     });
 
-    this.#host.on('mouseleave', ({ event, next }) => {
+    on('mouseleave', ({ event, next }) => {
       !this.disabled() && this.#onMouseLeave(event);
       next(event);
     });

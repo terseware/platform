@@ -3,19 +3,18 @@ import {
   Component,
   computed,
   Directive,
-  inject,
   signal,
   viewChild,
   viewChildren,
 } from '@angular/core';
 import { injectElement } from '@terseware/utils';
 import { fireEvent, render, screen } from '@testing-library/angular';
-import { ProtoHost } from './proto-host';
-import { Resolvable } from './proto-resolve';
+import { on } from './proto-events';
+import { Resolvable, resolve } from './proto-resolve';
 
 describe('Proto', () => {
   @Resolvable()
-  class InteractBehavior {
+  class InteractProto {
     readonly element = injectElement();
 
     readonly disabled = signal(false);
@@ -26,9 +25,7 @@ describe('Proto', () => {
     readonly softDisabled = computed(() => this.disabled() && this.focusableWhenDisabled());
 
     constructor() {
-      const ctx = inject(ProtoHost);
-
-      ctx.on('keydown', ({ event, next }) => {
+      on('keydown', ({ event, next }) => {
         if (this.softDisabled() && event.key !== 'Tab') {
           event.preventDefault();
         }
@@ -38,15 +35,13 @@ describe('Proto', () => {
   }
 
   @Resolvable()
-  class ButtonBehavior {
-    readonly interact = inject(InteractBehavior);
+  class ButtonProto {
+    readonly interact = resolve(InteractProto);
 
     readonly didKeyDownEvent = signal(false);
 
     constructor() {
-      const ctx = inject(ProtoHost);
-
-      ctx.on('keydown', ({ event, next }) => {
+      on('keydown', ({ event, next }) => {
         if (this.interact.disabled()) {
           return;
         }
@@ -68,7 +63,7 @@ describe('Proto', () => {
   })
   class TestButton {
     readonly didKeyDownEvent = signal(false);
-    readonly button = inject(ButtonBehavior);
+    readonly button = resolve(ButtonProto);
 
     onKeyDown() {
       this.didKeyDownEvent.set(true);
@@ -116,7 +111,7 @@ describe('Proto', () => {
       @Resolvable()
       class AProto {
         constructor() {
-          inject(ProtoHost).on('click', ({ event, next }) => {
+          on('click', ({ event, next }) => {
             order.push('A:before');
             next.event('click', event);
             order.push('A:after');
@@ -126,9 +121,9 @@ describe('Proto', () => {
 
       @Resolvable()
       class BProto {
-        readonly a = inject(AProto);
+        readonly a = resolve(AProto);
         constructor() {
-          inject(ProtoHost).on('click', ({ event, next }) => {
+          on('click', ({ event, next }) => {
             order.push('B:before');
             next.event('click', event);
             order.push('B:after');
@@ -138,7 +133,7 @@ describe('Proto', () => {
 
       @Directive({ selector: '[testA]' })
       class TestA {
-        readonly b = inject(BProto);
+        readonly b = resolve(BProto);
       }
 
       @Component({
@@ -163,7 +158,7 @@ describe('Proto', () => {
       @Resolvable()
       class BlockerProto {
         constructor() {
-          inject(ProtoHost).on('click', ({ event }) => {
+          on('click', ({ event }) => {
             called.push('blocker');
             event.preventProtoHandler();
             // intentionally does NOT call next
@@ -173,9 +168,9 @@ describe('Proto', () => {
 
       @Resolvable()
       class DownstreamProto {
-        readonly blocker = inject(BlockerProto);
+        readonly blocker = resolve(BlockerProto);
         constructor() {
-          inject(ProtoHost).on('click', ({ event, next }) => {
+          on('click', ({ event, next }) => {
             called.push('downstream');
             next(event);
           });
@@ -184,7 +179,7 @@ describe('Proto', () => {
 
       @Directive({ selector: '[testBlock]' })
       class TestBlock {
-        readonly d = inject(DownstreamProto);
+        readonly d = resolve(DownstreamProto);
       }
 
       @Component({
@@ -205,7 +200,7 @@ describe('Proto', () => {
       @Resolvable()
       class BlockerProto {
         constructor() {
-          inject(ProtoHost).on('click', ({ event, next }) => {
+          on('click', ({ event, next }) => {
             event.preventProtoHandler();
             next(event);
           });
@@ -217,7 +212,7 @@ describe('Proto', () => {
         host: { '(click)': 'onClick($event)' },
       })
       class TestHostListener {
-        readonly blocker = inject(BlockerProto);
+        readonly blocker = resolve(BlockerProto);
         onClick(_e: Event) {
           hostListenerCalled.set(true);
         }
@@ -243,12 +238,11 @@ describe('Proto', () => {
       @Resolvable()
       class CrossProto {
         constructor() {
-          const ctx = inject(ProtoHost);
-          ctx.on('click', ({ event, next }) => {
+          on('click', ({ event, next }) => {
             clickFired.set(true);
             next.event('click', event);
           });
-          ctx.on('keydown', ({ event, next }) => {
+          on('keydown', ({ event, next }) => {
             if (event.key === 'Enter') {
               next.event('click', event);
               return;
@@ -260,7 +254,7 @@ describe('Proto', () => {
 
       @Directive({ selector: '[testCross]' })
       class TestCross {
-        readonly c = inject(CrossProto);
+        readonly c = resolve(CrossProto);
       }
 
       @Component({
@@ -281,12 +275,11 @@ describe('Proto', () => {
       @Resolvable()
       class RepeatProto {
         constructor() {
-          const ctx = inject(ProtoHost);
-          ctx.on('click', ({ event, next }) => {
+          on('click', ({ event, next }) => {
             callCounts.click++;
             next.event('click', event);
           });
-          ctx.on('keydown', ({ event, next }) => {
+          on('keydown', ({ event, next }) => {
             next.event('click', event);
           });
         }
@@ -294,7 +287,7 @@ describe('Proto', () => {
 
       @Directive({ selector: '[testRepeat]' })
       class TestRepeat {
-        readonly r = inject(RepeatProto);
+        readonly r = resolve(RepeatProto);
       }
 
       @Component({
@@ -322,7 +315,7 @@ describe('Proto', () => {
       class CounterProto {
         readonly count = signal(0);
         constructor() {
-          inject(ProtoHost).on('click', ({ event, next }) => {
+          on('click', ({ event, next }) => {
             this.count.update(c => c + 1);
             next.event('click', event);
           });
@@ -331,7 +324,7 @@ describe('Proto', () => {
 
       @Directive({ selector: '[testCounter]' })
       class TestCounter {
-        readonly counter = inject(CounterProto);
+        readonly counter = resolve(CounterProto);
       }
 
       @Component({
@@ -367,7 +360,7 @@ describe('Proto', () => {
     it('should prevent default on keydown when softDisabled', async () => {
       @Directive({ selector: '[testInteract]' })
       class TestInteract {
-        readonly interact = inject(InteractBehavior);
+        readonly interact = resolve(InteractProto);
       }
 
       @Component({
@@ -392,7 +385,7 @@ describe('Proto', () => {
     it('should allow Tab through when softDisabled', async () => {
       @Directive({ selector: '[testTab]' })
       class TestTab {
-        readonly interact = inject(InteractBehavior);
+        readonly interact = resolve(InteractProto);
       }
 
       @Component({

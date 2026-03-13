@@ -1,14 +1,16 @@
 import type { BooleanInput } from '@angular/cdk/coercion';
-import { booleanAttribute, Directive, inject, input, output } from '@angular/core';
+import { booleanAttribute, Directive, input, output } from '@angular/core';
+import { resolve } from '@terseware/proto';
 import { onChange, signalBind } from '@terseware/utils';
-import { Intersect } from './intersect';
+import { render, screen } from '@testing-library/angular';
+import { IntersectProto } from './intersect.proto';
 
 @Directive({
   selector: '[protoIntersect]',
   exportAs: 'protoIntersect',
 })
-export class ProtoIntersect {
-  readonly #intersect = inject(Intersect);
+class ProtoIntersect {
+  readonly #intersect = resolve(IntersectProto);
 
   readonly disabled = input<boolean, BooleanInput>(this.#intersect.disabled(), {
     transform: booleanAttribute,
@@ -39,3 +41,14 @@ export class ProtoIntersect {
     onChange(this.#intersect.isIntersecting, () => this.protoIntersect.emit());
   }
 }
+
+describe('ProtoIntersect', () => {
+  it('should emit when intersect changes', async () => {
+    await render(`<button protoIntersect></button>`, {
+      imports: [ProtoIntersect],
+    });
+
+    const button = screen.getByRole('button');
+    expect(button).not.toHaveAttribute('data-intersect');
+  });
+});

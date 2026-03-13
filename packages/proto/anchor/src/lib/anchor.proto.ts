@@ -5,7 +5,7 @@ import { uniqueId } from '@terseware/utils';
 export type AnchorName = `--${string}`;
 
 @Resolvable()
-export class Anchor {
+export class AnchorProto {
   readonly #host = inject(ProtoHost);
 
   readonly name: AnchorName = `--${uniqueId('anchor')}`;

@@ -15,29 +15,15 @@ import type { ComponentFixture } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { injectElement, uniqueId } from '@terseware/utils';
 import { render } from '@testing-library/angular';
-import { Resolvable } from './proto-resolve';
+import { Resolvable, resolve } from './proto-resolve';
 
 @Resolvable()
 class Interact {}
 
-@Resolvable({ inherit: false, explicit: false })
-class TestProtoNoInheritNoExplicit {
-  readonly interact = inject(Interact);
-  readonly id = uniqueId(TestProtoNoInheritNoExplicit.name).split('-')[1];
-}
-@Resolvable({ inherit: true, explicit: false })
-class TestProtoInheritNoExplicit {
-  readonly id = uniqueId(TestProtoInheritNoExplicit.name).split('-')[1];
-}
-@Resolvable({ inherit: false, explicit: true })
-class TestProtoNoInheritExplicit {
-  readonly interact = inject(Interact);
-  readonly id = uniqueId(TestProtoNoInheritExplicit.name).split('-')[1];
-}
-@Resolvable({ inherit: true, explicit: true })
-class TestProtoInheritExplicit {
-  readonly interact = inject(Interact);
-  readonly id = uniqueId(TestProtoInheritExplicit.name).split('-')[1];
+@Resolvable()
+class TestProto {
+  readonly interact = resolve(Interact);
+  readonly id = uniqueId(TestProto.name).split('-')[1];
 }
 
 describe('Proto', () => {
@@ -47,19 +33,13 @@ describe('Proto', () => {
   class TestParent {
     readonly id = inject(new HostAttributeToken('id'));
     readonly element = injectElement();
-    readonly noInheritNoExplicit = inject(TestProtoNoInheritNoExplicit);
-    readonly inheritNoExplicit = inject(TestProtoInheritNoExplicit);
-    readonly noInheritExplicit = inject(TestProtoNoInheritExplicit);
-    readonly inheritExplicit = inject(TestProtoInheritExplicit);
+    readonly proto = inject(TestProto);
 
     constructor() {
-      // console.log('testParent', {
-      //   id: this.id,
-      //   noInheritNoExplicitId: this.noInheritNoExplicit.id,
-      //   inheritNoExplicitId: this.inheritNoExplicit.id,
-      //   noInheritExplicitId: this.noInheritExplicit.id,
-      //   inheritExplicitId: this.inheritExplicit.id,
-      // });
+      console.log('testParent', {
+        id: this.id,
+        protoId: this.proto.id,
+      });
       expect(this.id).toBe('3');
     }
   }
@@ -70,32 +50,15 @@ describe('Proto', () => {
   class TestDir {
     readonly id = inject(new HostAttributeToken('id'));
     readonly element = injectElement();
-    readonly noInheritNoExplicit = inject(TestProtoNoInheritNoExplicit);
-    readonly inheritNoExplicit = inject(TestProtoInheritNoExplicit);
-    readonly noInheritExplicit = inject(TestProtoNoInheritExplicit, { host: true });
-    readonly inheritExplicit = inject(TestProtoInheritExplicit, { host: true });
+    readonly inherited = inject(TestProto, { optional: true }) ?? resolve(TestProto);
+    // readonly notInherited = resolve(TestProto, { inherit: false });
 
     constructor() {
-      // console.log('testParent', {
-      //   id: this.id,
-      //   noInheritNoExplicitId: this.noInheritNoExplicit.id,
-      //   inheritNoExplicitId: this.inheritNoExplicit.id,
-      //   noInheritExplicitId: this.noInheritExplicit.id,
-      //   inheritExplicitId: this.inheritExplicit.id,
-      // });
-      // if (this.id === '7') {
-      //   const parent = inject(TestParent);
-      //   expect(parent.id).toBe('3');
-      //   const parentInj = borrowedNodeInjector(parent.element);
-      //   const parentEl = runInInjectionContext(parentInj, () => injectElement());
-      //   expect(parentEl.getAttribute('id')).toBe('3');
-      // } else if (this.id === '8') {
-      //   const parent = inject(TestParent);
-      //   expect(parent.id).toBe('3');
-      //   const parentInj = borrowedNodeInjector(parent.element);
-      //   const parentEl = runInInjectionContext(parentInj, () => injectElement());
-      //   expect(parentEl.getAttribute('id')).toBe('3');
-      // }
+      console.log('testDir', {
+        id: this.id,
+        inheritedId: this.inherited.id,
+        // notInheritedId: this.notInherited.id,
+      });
     }
   }
 

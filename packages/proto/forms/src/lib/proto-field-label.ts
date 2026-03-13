@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 import type { FieldTree } from '@angular/forms/signals';
 import { ProtoHost, ProtoResolver } from '@terseware/proto';
-import { FieldProto } from './field-ctx';
+import { FieldProto } from './field.proto';
 import { installFieldDataAttributes, installFieldErrorDataAttributes } from './forms-di';
 
 @Directive({

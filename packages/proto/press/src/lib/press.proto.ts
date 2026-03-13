@@ -1,9 +1,9 @@
 import { inject, signal } from '@angular/core';
-import { ProtoHost, Resolvable } from '@terseware/proto';
+import { on, ProtoHost, Resolvable } from '@terseware/proto';
 import { injectElement, onDestroy } from '@terseware/utils';
 
 @Resolvable()
-export class Press {
+export class PressProto {
   readonly #element = injectElement();
   readonly #host = inject(ProtoHost);
 
@@ -25,7 +25,7 @@ export class Press {
       }
     };
 
-    this.#host.on('pointerdown', ({ event, next }) => {
+    on('pointerdown', ({ event, next }) => {
       next(event);
 
       if (this.disabled()) {

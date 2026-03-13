@@ -1,1 +1,1 @@
-export * from './lib/interact.behavior';
+export * from './lib/interact.proto';

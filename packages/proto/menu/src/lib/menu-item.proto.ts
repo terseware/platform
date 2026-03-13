@@ -1,9 +1,9 @@
 import { Directive, effect, inject } from '@angular/core';
-import { ProtoHost, Resolvable } from '@terseware/proto';
-import { ButtonBehavior } from '@terseware/proto/button';
+import { on, ProtoHost, Resolvable, resolve } from '@terseware/proto';
+import { ButtonProto } from '@terseware/proto/button';
 import { FocusProto } from '@terseware/proto/focus';
-import { injectElement } from '@terseware/utils';
-import { MenuTriggerProto } from './menu-trigger';
+import { injectElement, onDestroy } from '@terseware/utils';
+import { MenuTriggerProto } from './menu-trigger.proto';
 
 /** Debounce timer for typeahead search reset. */
 const TYPEAHEAD_DEBOUNCE_MS = 500;
@@ -12,8 +12,8 @@ const TYPEAHEAD_DEBOUNCE_MS = 500;
 export class MenuItemProto {
   readonly element = injectElement();
   readonly #host = inject(ProtoHost);
-  readonly button = inject(ButtonBehavior);
-  readonly focus = inject(FocusProto);
+  readonly button = resolve(ButtonProto);
+  readonly focus = resolve(FocusProto);
   readonly ctx = inject(MenuTriggerProto);
 
   readonly id = this.#host.id('menu-item');
@@ -23,7 +23,7 @@ export class MenuItemProto {
   #typeaheadTimeout: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
-    this.ctx.addItem(this);
+    onDestroy(this.ctx.addItem(this));
 
     this.button.isComposite.set(true);
     this.button.role.set('menuitem');
@@ -35,9 +35,9 @@ export class MenuItemProto {
 
     this.#host.bindAttr('data-active', () => (this.focus.isFocused() ? 'true' : null));
 
-    this.#host.on('mouseup', () => this.#activate());
+    on('click', () => this.#activate());
 
-    this.#host.on('keydown', ({ event, next }) => {
+    on('keydown', ({ event, next }) => {
       switch (event.key) {
         case 'ArrowDown':
           this.ctx.focusNext();
@@ -83,21 +83,6 @@ export class MenuItemProto {
 
       next(event);
     });
-
-    // this.#host.onKeys(
-    //   new KeyboardEventManager()
-    //     .on('ArrowDown', () => this.ctx.focusNext(), { ignoreRepeat: false })
-    //     .on('ArrowUp', () => this.ctx.focusPrevious(), { ignoreRepeat: false })
-    //     .on('Home', () => this.ctx.focusFirst())
-    //     .on('End', () => this.ctx.focusLast())
-    //     .on('Enter', () => this.#activate())
-    //     .on(' ', () => this.#activate())
-    //     .on('Escape', () => this.ctx.close())
-    //     .on(/^[a-z0-9]$/i, event => this.#handleTypeahead(event.key), {
-    //       preventDefault: false,
-    //       stopPropagation: false,
-    //     }),
-    // );
   }
 
   /** Activate: click the element and close the menu (WAI-ARIA menuitem behavior). */
@@ -109,19 +94,6 @@ export class MenuItemProto {
     this.ctx.activeItem.set(null);
     this.ctx.close();
   }
-
-  // /** Accumulate typed characters and search for matching items. */
-  // #handleTypeahead(char: string): void {
-  //   if (this.#typeaheadTimeout) {
-  //     clearTimeout(this.#typeaheadTimeout);
-  //   }
-  //   this.#typeaheadBuffer += char;
-  //   this.ctx.typeahead(this.#typeaheadBuffer);
-  //   this.#typeaheadTimeout = setTimeout(() => {
-  //     this.#typeaheadBuffer = '';
-  //     this.#typeaheadTimeout = null;
-  //   }, TYPEAHEAD_DEBOUNCE_MS);
-  // }
 }
 
 @Directive({
@@ -129,5 +101,5 @@ export class MenuItemProto {
   exportAs: 'protoMenuItem',
 })
 export class ProtoMenuItem {
-  readonly item = inject(MenuItemProto);
+  readonly item = resolve(MenuItemProto);
 }

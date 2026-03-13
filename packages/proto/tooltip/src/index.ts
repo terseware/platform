@@ -1,3 +1,3 @@
-export * from './lib/proto-tooltip';
-export * from './lib/proto-tooltip-arrow';
-export * from './lib/proto-tooltip-trigger';
+export * from './lib/tooltip-arrow.proto';
+export * from './lib/tooltip-trigger.proto';
+export * from './lib/tooltip.proto';

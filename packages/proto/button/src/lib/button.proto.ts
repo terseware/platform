@@ -1,12 +1,12 @@
 import { inject, signal } from '@angular/core';
-import { ProtoHost, Resolvable } from '@terseware/proto';
-import { InteractBehavior } from '@terseware/proto/interact';
+import { on, ProtoHost, Resolvable, resolve } from '@terseware/proto';
+import { InteractProto } from '@terseware/proto/interact';
 import { isNativeAnchorTag, isNativeButtonTag, isNativeInputTag } from '@terseware/utils';
 
 @Resolvable()
-export class ButtonBehavior {
+export class ButtonProto {
   readonly #host = inject(ProtoHost);
-  readonly interact = inject(InteractBehavior);
+  readonly interact = resolve(InteractProto);
 
   // Using getters here in case of DOM changes between events.
 
@@ -53,7 +53,7 @@ export class ButtonBehavior {
       return null;
     });
 
-    this.#host.on('click', ({ event, next }) => {
+    on('click', ({ event, next }) => {
       if (this.interact.disabled()) {
         event.preventDefault();
         return;
@@ -61,14 +61,14 @@ export class ButtonBehavior {
       next(event);
     });
 
-    this.#host.on('mousedown', ({ event, next }) => {
+    on('mousedown', ({ event, next }) => {
       if (this.interact.disabled()) {
         return;
       }
       next(event);
     });
 
-    this.#host.on('pointerdown', ({ event, next }) => {
+    on('pointerdown', ({ event, next }) => {
       if (this.interact.disabled()) {
         event.preventDefault();
         return;
@@ -76,8 +76,15 @@ export class ButtonBehavior {
       next(event);
     });
 
-    this.#host.on('keydown', ({ event, next }) => {
-      if (this.interact.disabled()) {
+    on('keydown', ({ event, next }) => {
+      if (this.interact.hardDisabled()) {
+        return;
+      }
+
+      const isSpaceKey = event.key === ' ';
+      const isEnterKey = event.key === 'Enter';
+
+      if (this.interact.softDisabled() && (isSpaceKey || isEnterKey)) {
         return;
       }
 
@@ -88,7 +95,7 @@ export class ButtonBehavior {
 
       const isCurrentTarget = event.target === event.currentTarget;
       const currentTarget = event.currentTarget as HTMLElement;
-      const isSpaceKey = event.key === ' ';
+      const shouldClick = isCurrentTarget && !this.#isButton && !this.#isLink;
 
       if (isCurrentTarget && this.isComposite() && isSpaceKey) {
         if (event.defaultPrevented && this.#isTextNavigationRole) {
@@ -100,13 +107,13 @@ export class ButtonBehavior {
         if (this.#isLink || this.#isButton) {
           currentTarget.click();
           event.preventProtoHandler();
+        } else if (shouldClick) {
+          next.event('click', event);
+          event.preventProtoHandler();
         }
 
         return;
       }
-
-      const isEnterKey = event.key === 'Enter';
-      const shouldClick = isCurrentTarget && !this.#isButton && !this.#isLink;
 
       if (shouldClick) {
         // Prevent default to stop Space from scrolling the page
@@ -117,12 +124,12 @@ export class ButtonBehavior {
         // Native button behavior: Enter fires immediately, Space waits for keyup
         // (allowing users to cancel by moving focus before releasing)
         if (isEnterKey) {
-          this.#host.element.click();
+          next.event('click', event);
         }
       }
     });
 
-    this.#host.on('keyup', ({ event, next }) => {
+    on('keyup', ({ event, next }) => {
       if (this.interact.disabled()) {
         return;
       }

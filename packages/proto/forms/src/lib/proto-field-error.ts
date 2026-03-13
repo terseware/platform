@@ -1,7 +1,7 @@
 import { computed, Directive, effect, inject, input, runInInjectionContext } from '@angular/core';
 import type { FieldState, ValidationError } from '@angular/forms/signals';
 import { ProtoHost, ProtoResolver } from '@terseware/proto';
-import { FieldProto } from './field-ctx';
+import { FieldProto } from './field.proto';
 import { installFieldDataAttributes } from './forms-di';
 
 @Directive({
@@ -25,12 +25,11 @@ export class ProtoFieldError<T> {
   });
   readonly state = computed(() => this.error().fieldTree() as FieldState<T, string | number>);
 
-  readonly contexts = computed(() => {
-    return this.error()
-      .fieldTree()
+  readonly contexts = computed(() =>
+    this.state()
       .formFieldBindings()
-      .map(field => runInInjectionContext(field.injector, () => inject(FieldProto<T>)));
-  });
+      .map(field => ProtoResolver.resolve(FieldProto<T>, field.element)),
+  );
 
   readonly triedSubmitting = computed(() => {
     for (const field of this.error().fieldTree().formFieldBindings()) {

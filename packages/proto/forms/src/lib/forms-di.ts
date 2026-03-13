@@ -3,8 +3,8 @@ import { inject, InjectionToken } from '@angular/core';
 import type { FieldState } from '@angular/forms/signals';
 import { ProtoHost, ProtoResolver } from '@terseware/proto';
 import { isFunction, isNil } from '@terseware/utils';
-import type { FieldProto } from './field-ctx';
-import type { FormProto } from './form-ctx';
+import type { FieldProto } from './field.proto';
+import type { FormProto } from './form.proto';
 
 export type ProtoFormDataAttributes<T = unknown> = Record<
   string,

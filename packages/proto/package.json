@@ -8,7 +8,9 @@
     "@terseware/utils": "0.0.1",
     "ngxtension": "^7.1.0",
     "rxjs": "~7.8.2",
-    "@angular/platform-browser": "^21.2.2"
+    "@angular/platform-browser": "^21.2.2",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^3.5.0"
   },
   "sideEffects": false
 }

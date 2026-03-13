@@ -18,14 +18,14 @@ import {
   viewChild,
   ViewContainerRef,
 } from '@angular/core';
-import { ProtoHost, Resolvable } from '@terseware/proto';
-import { Anchor } from '@terseware/proto/anchor';
-import { ButtonBehavior } from '@terseware/proto/button';
+import { on, ProtoHost, Resolvable, resolve } from '@terseware/proto';
+import { AnchorProto } from '@terseware/proto/anchor';
+import { ButtonProto } from '@terseware/proto/button';
 import { HoverProto } from '@terseware/proto/hover';
 import { injectElement, isomorphicEffect, onChange, onDestroy, signalBind } from '@terseware/utils';
 import { SignalSet } from 'ngxtension/collections';
-import type { MenuProto } from './menu';
-import type { MenuItemProto } from './menu-item';
+import type { MenuItemProto } from './menu-item.proto';
+import type { MenuProto } from './menu.proto';
 
 type MenuOrigin = 'top' | 'bottom' | 'left' | 'right';
 
@@ -60,15 +60,15 @@ const sideFlip: Record<string, string> = {
 
 export type MenuContent = Type<object> | TemplateRef<{ $implicit: MenuTriggerProto }>;
 
-@Resolvable({ inherit: true })
+@Resolvable()
 export class MenuTriggerProto {
   readonly #vcr = inject(ViewContainerRef);
   readonly #injector = inject(Injector);
   readonly #host = inject(ProtoHost);
   readonly element = injectElement();
 
-  readonly button = inject(ButtonBehavior);
-  readonly anchorName = inject(Anchor).name;
+  readonly button = resolve(ButtonProto);
+  readonly anchorName = resolve(AnchorProto).name;
   readonly triggerId = this.#host.id('menu-trigger');
 
   /**
@@ -122,18 +122,16 @@ export class MenuTriggerProto {
     // Immediately close the menu upon disabling
     onChange(this.menuDisabled, d => d && this.close());
 
-    this.button.isComposite.set(true);
     signalBind(this.button.interact.tabIndex, () =>
       this.expanded() && this.activeItem() ? -1 : 0,
     );
 
-    // const debounceTimeout: ReturnType<typeof setTimeout> | null = null;
-
-    this.#host.on('click', ({ event, next }) => {
+    on('click', ({ event, next }) => {
       this.toggle();
       next(event);
     });
-    this.#host.on('keydown', ({ event, next }) => {
+
+    on('keydown', ({ event, next }) => {
       switch (event.key) {
         case 'Escape':
           this.close();
@@ -150,11 +148,11 @@ export class MenuTriggerProto {
         case 'Enter':
           this.open(this.expanded() ? (this.align().endsWith('bottom') ? 'first' : 'last') : null);
           event.preventDefault();
-          break;
+          return;
         case ' ':
           this.open(this.expanded() ? (this.align().endsWith('bottom') ? 'first' : 'last') : null);
           event.preventDefault();
-          break;
+          return;
         case 'ArrowRight':
           if (this.expanded()) {
             this.open(this.align().endsWith('bottom') ? 'first' : 'last');
@@ -211,8 +209,7 @@ export class MenuTriggerProto {
       );
     });
 
-    // Close on focusout when focus moves outside the trigger and menu
-    this.#host.on('focusout', ({ event, next }) => {
+    on('focusout', ({ event, next }) => {
       const related = event.relatedTarget as Node | null;
       if (!this.expanded()) {
         return;
@@ -371,8 +368,8 @@ class ProtoMenuContainer {
   readonly #host = inject(ProtoHost);
   readonly #injector = inject(Injector);
   readonly vcr = viewChild('vcr', { read: ViewContainerRef });
-  readonly ctx = inject(MenuTriggerProto, { skipSelf: true });
-  readonly hover = inject(HoverProto);
+  readonly ctx = inject(MenuTriggerProto);
+  readonly hover = resolve(HoverProto);
 
   readonly triggerAnchorName = this.ctx.anchorName;
   readonly menuAnchorName = `${this.ctx.anchorName}-menu` as const;
@@ -394,9 +391,7 @@ class ProtoMenuContainer {
           ? vcr.createEmbeddedView(content, { $implicit: this.ctx }, { injector: this.#injector })
           : vcr.createComponent(content, { injector: this.#injector });
 
-      onCleanup(() => {
-        ref.destroy();
-      });
+      onCleanup(() => ref.destroy());
     });
 
     this.#host.bindStyles(() => ({
@@ -418,7 +413,7 @@ class ProtoMenuContainer {
   exportAs: 'protoMenuTrigger',
 })
 export class ProtoMenuTrigger {
-  readonly ctx = inject(MenuTriggerProto);
+  readonly ctx = resolve(MenuTriggerProto);
 
   readonly disabled = input<boolean, BooleanInput>(false, {
     transform: booleanAttribute,

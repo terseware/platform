@@ -4,7 +4,6 @@ import {
   Component,
   Directive,
   getDebugNode,
-  inject,
   input,
   numberAttribute,
   signal,
@@ -13,11 +12,12 @@ import {
 import { fireEvent, render, screen } from '@testing-library/angular';
 
 import type { BooleanInput, NumberInput } from '@angular/cdk/coercion';
-import { ButtonBehavior } from '@terseware/proto/button';
+import { resolve } from '@terseware/proto';
+import { ButtonProto } from '@terseware/proto/button';
 import { signalBind } from '@terseware/utils';
-import { ProtoMenu } from './menu';
-import { ProtoMenuItem } from './menu-item';
-import { ProtoMenuTrigger } from './menu-trigger';
+import { ProtoMenuItem } from './menu-item.proto';
+import { ProtoMenuTrigger } from './menu-trigger.proto';
+import { ProtoMenu } from './menu.proto';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -44,7 +44,7 @@ function getMenuItemDirective(element: HTMLElement): ProtoMenuItem | null {
   selector: '[testMenuItem]',
 })
 class TestMenuItem {
-  readonly button = inject(ButtonBehavior);
+  readonly button = resolve(ButtonProto);
 
   readonly disabled = input<boolean, BooleanInput>(this.button.interact.disabled(), {
     transform: booleanAttribute,

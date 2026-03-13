@@ -1,13 +1,13 @@
 import { computed, effect, inject, runInInjectionContext, signal, untracked } from '@angular/core';
 import type { FormField } from '@angular/forms/signals';
 import { FORM_FIELD, FormRoot } from '@angular/forms/signals';
-import { ProtoHost, Resolvable } from '@terseware/proto';
+import { ProtoHost, Resolvable, resolve } from '@terseware/proto';
 import { FocusProto } from '@terseware/proto/focus';
 import { HoverProto } from '@terseware/proto/hover';
-import { InteractBehavior } from '@terseware/proto/interact';
-import { Press } from '@terseware/proto/press';
+import { InteractProto } from '@terseware/proto/interact';
+import { PressProto } from '@terseware/proto/press';
 import { signalBind, supportsRequiredAttribute } from '@terseware/utils';
-import { FormProto } from './form-ctx';
+import { FormProto } from './form.proto';
 import type { ProtoFieldErrorStrategy } from './forms-di';
 import {
   installFieldDataAttributes,
@@ -36,11 +36,10 @@ export class FieldProto<T> {
   readonly triedSubmitting = computed(() => this.formCtx().triedSubmitting());
 
   constructor() {
-    const interact = inject(InteractBehavior);
-    signalBind(interact.disabled, () => this.state().disabled());
-    signalBind(inject(HoverProto).disabled, interact.disabled);
-    signalBind(inject(Press).disabled, interact.disabled);
-    signalBind(inject(FocusProto).disabled, interact.hardDisabled); // Allow focus when focusable when disabled is true
+    signalBind(resolve(InteractProto).disabled, () => this.state().disabled());
+    resolve(HoverProto);
+    resolve(PressProto);
+    resolve(FocusProto);
 
     installFieldDataAttributes(this.#element, () => this.state());
     installFieldErrorDataAttributes(this.#element, () => this);

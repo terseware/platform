@@ -1,6 +1,46 @@
+import type { BooleanInput } from '@angular/cdk/coercion';
+import { booleanAttribute, Directive, input, output } from '@angular/core';
 import { By } from '@angular/platform-browser';
+import { resolve } from '@terseware/proto';
+import { onChange, signalBind } from '@terseware/utils';
 import { fireEvent, render, screen } from '@testing-library/angular';
-import { ProtoHover } from './proto-hover';
+import { HoverProto } from './hover.proto';
+
+@Directive({
+  selector: '[protoHover]',
+  exportAs: 'protoHover',
+})
+class ProtoHover {
+  readonly #hover = resolve(HoverProto);
+
+  readonly disabled = input<boolean, BooleanInput>(this.#hover.disabled(), {
+    transform: booleanAttribute,
+    alias: 'protoHoverDisabled',
+  });
+
+  readonly hoverStart = output<void>({ alias: 'protoHoverStart' });
+  readonly hoverEnd = output<void>({ alias: 'protoHoverEnd' });
+  readonly hoverChange = output<boolean>({ alias: 'protoHoverChange' });
+  readonly isHovered = this.#hover.isHovered;
+
+  constructor() {
+    signalBind(this.#hover.disabled, this.disabled);
+
+    onChange(this.isHovered, isHovered => {
+      if (isHovered) {
+        this.hoverChange.emit(true);
+        this.hoverStart.emit();
+      } else {
+        this.hoverChange.emit(false);
+        this.hoverEnd.emit();
+      }
+    });
+  }
+
+  setDisabled(disabled: boolean): void {
+    this.#hover.disabled.set(disabled);
+  }
+}
 
 describe('ProtoHover', () => {
   describe('pointer hover', () => {

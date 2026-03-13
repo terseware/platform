@@ -1,2 +1,1 @@
-export * from './lib/hover';
-export * from './lib/proto-hover';
+export * from './lib/hover.proto';

@@ -1,4 +1,3 @@
-export * from './lib/classes';
 export * from './lib/deep-merge/deep-merge';
 export * from './lib/helpers';
 export * from './lib/inject-helpers';

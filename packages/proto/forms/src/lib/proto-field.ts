@@ -1,8 +1,9 @@
 import { Directive, inject, input } from '@angular/core';
 import type { FormField } from '@angular/forms/signals';
 import { FORM_FIELD } from '@angular/forms/signals';
+import { resolve } from '@terseware/proto';
 import { signalBind } from '@terseware/utils';
-import { FieldProto } from './field-ctx';
+import { FieldProto } from './field.proto';
 import type { ProtoFieldErrorStrategy } from './forms-di';
 
 @Directive({
@@ -12,7 +13,7 @@ import type { ProtoFieldErrorStrategy } from './forms-di';
 export class ProtoField<T> {
   readonly field = inject<FormField<T>>(FORM_FIELD);
   readonly state = this.field.state;
-  readonly ctx = inject(FieldProto<T>);
+  readonly ctx = resolve(FieldProto<T>);
 
   readonly errorStrategy = input<ProtoFieldErrorStrategy<T>>(this.ctx.errorStrategy(), {
     alias: 'protoFieldErrorStrategy',

@@ -1,21 +1,18 @@
 import { CdkScrollable } from '@angular/cdk/scrolling';
-import { Directive, inject } from '@angular/core';
+import { inject } from '@angular/core';
+import { Resolvable } from '@terseware/proto';
 import { toLazySignal } from 'ngxtension/to-lazy-signal';
 import { animationFrameScheduler, auditTime, map } from 'rxjs';
 
 /**
- * A directive that provides a wrapper around the {@link CdkScrollable} directive
+ * A proto that provides a wrapper around the {@link CdkScrollable} directive
  * for measuring scroll offsets with lazy signals for enhanced performance.
  *
  * @remarks
  * Credit to ngxtension for toLazySignal: https://ngxtension.dev/utilities/signals/to-lazy-signal
  */
-@Directive({
-  selector: '[protoLazyScrollable]',
-  exportAs: 'protoLazyScrollable',
-  hostDirectives: [CdkScrollable],
-})
-export class ProtoLazyScrollable {
+@Resolvable()
+export class LazyScrollableProto {
   readonly cdkScrollable = inject(CdkScrollable);
 
   readonly #scrolled = this.cdkScrollable

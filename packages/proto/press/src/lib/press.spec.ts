@@ -1,6 +1,46 @@
+import type { BooleanInput } from '@angular/cdk/coercion';
+import { booleanAttribute, Directive, input, output } from '@angular/core';
 import { By } from '@angular/platform-browser';
+import { resolve } from '@terseware/proto';
+import { onChange, signalBind } from '@terseware/utils';
 import { fireEvent, render, screen } from '@testing-library/angular';
-import { ProtoPress } from './proto-press';
+import { PressProto } from './press.proto';
+
+@Directive({
+  selector: '[protoPress]',
+  exportAs: 'protoPress',
+})
+class ProtoPress {
+  readonly press = resolve(PressProto);
+
+  readonly disabled = input<boolean, BooleanInput>(this.press.disabled(), {
+    transform: booleanAttribute,
+    alias: 'protoPressDisabled',
+  });
+
+  readonly pressStart = output<void>({ alias: 'protoPressStart' });
+  readonly pressEnd = output<void>({ alias: 'protoPressEnd' });
+  readonly pressChange = output<boolean>({ alias: 'protoPressChange' });
+  readonly isPressed = this.press.isPressed;
+
+  constructor() {
+    signalBind(this.press.disabled, this.disabled);
+
+    onChange(this.isPressed, isPressed => {
+      if (isPressed) {
+        this.pressChange.emit(true);
+        this.pressStart.emit();
+      } else {
+        this.pressChange.emit(false);
+        this.pressEnd.emit();
+      }
+    });
+  }
+
+  setDisabled(disabled: boolean): void {
+    this.press.disabled.set(disabled);
+  }
+}
 
 describe('ProtoPress', () => {
   describe('press state', () => {

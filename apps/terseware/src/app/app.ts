@@ -11,7 +11,7 @@ import {
   ProtoFieldLabel,
   resolver,
 } from '@terseware/proto/forms';
-import { InteractBehavior } from '@terseware/proto/interact';
+import { InteractProto } from '@terseware/proto/interact';
 import { ProtoMenu, ProtoMenuItem, ProtoMenuTrigger } from '@terseware/proto/menu';
 import { TerseButton } from '@terseware/ui/button';
 import { TerseThemeToggle } from '@terseware/ui/theme';
@@ -61,7 +61,10 @@ import { TerseThemeToggle } from '@terseware/ui/theme';
         @for (error of form.name().errors(); track error) {
           <p [protoFieldError]="error">{{ error.message }}</p>
         }
-        <button terseButton type="submit">Submit</button>
+        <button terseButton type="submit" [class]="toggle() ? 'bg-red-500' : 'bg-blue-500'">
+          Submit
+        </button>
+        <button terseButton (click)="toggle.set(!toggle())">Toggle</button>
       </form>
 
       <br />
@@ -76,7 +79,7 @@ import { TerseThemeToggle } from '@terseware/ui/theme';
             <proto-menu-item disabled protoMenuItem [terseButton]="'menu-item'"
               >Menu Item 2</proto-menu-item
             >
-            <proto-menu-item disabled protoMenuItem [terseButton]="'menu-item'"
+            <proto-menu-item disabled loading protoMenuItem [terseButton]="'menu-item'"
               >Menu Item 3</proto-menu-item
             >
             <proto-menu-item protoMenuItem [terseButton]="'menu-item'">Menu Item 4</proto-menu-item>
@@ -98,11 +101,13 @@ export class App {
   readonly logo = httpResource.text(() => 'terseware.svg');
   readonly logoIcon = computed(() => (this.logo.hasValue() ? this.logo.value() : null));
 
+  readonly toggle = signal(false);
+
   readonly show = signal(true);
   readonly form = form(
     signal({ name: 'James', tabIndex: 0 }),
     path => {
-      resolver(path.tabIndex, InteractBehavior, ctx => {
+      resolver(path.tabIndex, InteractProto, ctx => {
         ctx.instance.tabIndex.set(ctx.value());
       });
       required(path.name, { message: 'Name is required' });

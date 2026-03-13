@@ -1,21 +1,22 @@
 import { FocusMonitor } from '@angular/cdk/a11y';
 import type { BooleanInput, NumberInput } from '@angular/cdk/coercion';
-import { booleanAttribute, Directive, inject, input, numberAttribute } from '@angular/core';
+import { booleanAttribute, Directive, input, numberAttribute } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
+import { resolve } from '@terseware/proto';
 import { FocusProto } from '@terseware/proto/focus';
 import { HoverProto } from '@terseware/proto/hover';
-import { Press } from '@terseware/proto/press';
+import { PressProto } from '@terseware/proto/press';
 import { signalBind } from '@terseware/utils';
 import { fireEvent, render, screen } from '@testing-library/angular';
-import { ButtonBehavior } from './button.behavior';
+import { ButtonProto } from './button.proto';
 
 @Directive({ selector: '[protoButton]', exportAs: 'protoButton' })
 class ProtoButton {
-  readonly button = inject(ButtonBehavior);
-  readonly hover = inject(HoverProto);
-  readonly press = inject(Press);
-  readonly focus = inject(FocusProto);
+  readonly button = resolve(ButtonProto);
+  readonly hover = resolve(HoverProto);
+  readonly press = resolve(PressProto);
+  readonly focus = resolve(FocusProto);
 
   readonly disabled = input<boolean, BooleanInput>(this.button.interact.disabled(), {
     transform: booleanAttribute,

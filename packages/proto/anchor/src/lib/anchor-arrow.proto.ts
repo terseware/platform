@@ -5,7 +5,7 @@ import { isNumber } from '@terseware/utils';
 export type AnchorArrowAlign = 'top' | 'bottom' | 'left' | 'right';
 
 @Resolvable()
-export class AnchorArrow {
+export class AnchorArrowProto {
   readonly #host = inject(ProtoHost);
 
   readonly size = signal<string | number>('8px');

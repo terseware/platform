@@ -1,3 +1,3 @@
-export * from './lib/menu';
-export * from './lib/menu-item';
-export * from './lib/menu-trigger';
+export * from './lib/menu-item.proto';
+export * from './lib/menu-trigger.proto';
+export * from './lib/menu.proto';

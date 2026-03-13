@@ -1,18 +1,17 @@
 import { Directive, inject } from '@angular/core';
-import { ProtoHost, Resolvable } from '@terseware/proto';
+import { on, ProtoHost, Resolvable, resolve } from '@terseware/proto';
 import { onDestroy } from '@terseware/utils';
-import { MenuTriggerProto } from './menu-trigger';
+import { MenuTriggerProto } from './menu-trigger.proto';
 
 @Resolvable()
 export class MenuProto {
   readonly #host = inject(ProtoHost);
   readonly element = this.#host.element;
-  readonly ctx = inject(MenuTriggerProto, { skipSelf: true });
+  readonly ctx = inject(MenuTriggerProto);
   readonly id = this.#host.id('menu');
 
   constructor() {
-    const removeMenu = this.ctx.setMenu(this);
-    onDestroy(() => removeMenu());
+    onDestroy(this.ctx.setMenu(this));
 
     this.#host.setAttr('role', 'menu');
 
@@ -20,7 +19,7 @@ export class MenuProto {
     this.#host.bindAttr('aria-labelledby', () => this.ctx.triggerId);
 
     // Close on focusout when focus moves outside the menu
-    this.#host.on('focusout', ({ event, next }) => {
+    on('focusout', ({ event, next }) => {
       const related = event.relatedTarget as Node | null;
       if (!this.ctx.expanded()) {
         return;
@@ -48,5 +47,5 @@ export class MenuProto {
   exportAs: 'protoMenu',
 })
 export class ProtoMenu {
-  readonly menu = inject(MenuProto);
+  readonly menu = resolve(MenuProto);
 }

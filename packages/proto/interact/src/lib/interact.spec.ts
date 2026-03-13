@@ -8,21 +8,22 @@ import {
   numberAttribute,
 } from '@angular/core';
 import { By } from '@angular/platform-browser';
+import { resolve } from '@terseware/proto';
 import { signalBind } from '@terseware/utils';
 import { render, screen } from '@testing-library/angular';
-import { InteractBehavior } from './interact.behavior';
+import { InteractProto } from './interact.proto';
 
-describe('InteractBehavior', () => {
+describe('InteractProto', () => {
   @Directive({ selector: '[testInteract]' })
   class TestInteract {
-    readonly state = inject(InteractBehavior);
+    readonly state = resolve(InteractProto);
   }
 
   describe('on native button', () => {
     it('should set disabled attribute when disabled', async () => {
       @Directive({ selector: '[disabledBtn]' })
       class DisabledBtn {
-        readonly state = inject(InteractBehavior);
+        readonly state = resolve(InteractProto);
         constructor() {
           this.state.disabled.set(true);
         }
@@ -40,7 +41,7 @@ describe('InteractBehavior', () => {
     it('should not set disabled when focusableWhenDisabled is true', async () => {
       @Directive({ selector: '[focusableBtn]' })
       class FocusableBtn {
-        readonly state = inject(InteractBehavior);
+        readonly state = resolve(InteractProto);
         constructor() {
           this.state.disabled.set(true);
           this.state.focusableWhenDisabled.set(true);
@@ -64,7 +65,7 @@ describe('InteractBehavior', () => {
       })
       class DisabledDiv {
         readonly myState = inject(MY_TOKEN);
-        readonly state = inject(InteractBehavior);
+        readonly state = resolve(InteractProto);
         constructor() {
           console.log('state', this.myState);
           this.state.disabled.set(true);
@@ -80,7 +81,7 @@ describe('InteractBehavior', () => {
     it('should set tabindex to -1 when disabled', async () => {
       @Directive({ selector: '[disabledDiv]' })
       class DisabledDiv {
-        readonly state = inject(InteractBehavior);
+        readonly state = resolve(InteractProto);
         constructor() {
           this.state.disabled.set(true);
         }
@@ -95,7 +96,7 @@ describe('InteractBehavior', () => {
     it('should set data-disabled when disabled', async () => {
       @Directive({ selector: '[disabledBtn]' })
       class DisabledBtn {
-        readonly state = inject(InteractBehavior);
+        readonly state = resolve(InteractProto);
         constructor() {
           this.state.disabled.set(true);
         }
@@ -115,7 +116,7 @@ describe('InteractBehavior', () => {
     it('should block non-Tab keydown when disabled and focusable', async () => {
       @Directive({ selector: '[disabledBtn]' })
       class DisabledBtn {
-        readonly state = inject(InteractBehavior);
+        readonly state = resolve(InteractProto);
         constructor() {
           this.state.disabled.set(true);
           this.state.focusableWhenDisabled.set(true);
@@ -135,7 +136,7 @@ describe('InteractBehavior', () => {
     it('should allow Tab key when disabled (no focus trap)', async () => {
       @Directive({ selector: '[disabledBtn]' })
       class DisabledBtn {
-        readonly state = inject(InteractBehavior);
+        readonly state = resolve(InteractProto);
         constructor() {
           this.state.disabled.set(true);
         }
@@ -167,7 +168,7 @@ describe('InteractBehavior', () => {
     it('should return the props as state', async () => {
       @Directive({ selector: '[stateDir]' })
       class StateDir {
-        readonly state = inject(InteractBehavior);
+        readonly state = resolve(InteractProto);
         constructor() {
           this.state.disabled.set(true);
           this.state.tabIndex.set(5);
@@ -186,7 +187,7 @@ describe('InteractBehavior', () => {
   describe('Full directive', () => {
     @Directive({ selector: '[protoInteract]' })
     class ProtoInteract {
-      readonly #interact = inject(InteractBehavior);
+      readonly #interact = resolve(InteractProto);
 
       readonly disabled = input<boolean, BooleanInput>(this.#interact.disabled(), {
         transform: booleanAttribute,

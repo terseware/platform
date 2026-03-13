@@ -1,2 +1,1 @@
-export * from './lib/focus';
-export * from './lib/proto-focus';
+export * from './lib/focus.proto';

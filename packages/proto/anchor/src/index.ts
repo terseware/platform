@@ -1,2 +1,2 @@
-export * from './lib/anchor';
-export * from './lib/anchor-arrow';
+export * from './lib/anchor-arrow.proto';
+export * from './lib/anchor.proto';

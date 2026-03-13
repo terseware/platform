@@ -1,10 +1,54 @@
 import type { FocusOrigin } from '@angular/cdk/a11y';
 import { FocusMonitor } from '@angular/cdk/a11y';
-import { ChangeDetectionStrategy, Component, Directive, signal, viewChild } from '@angular/core';
+import type { BooleanInput } from '@angular/cdk/coercion';
+import {
+  booleanAttribute,
+  ChangeDetectionStrategy,
+  Component,
+  Directive,
+  input,
+  output,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { resolve } from '@terseware/proto';
+import { onChange, signalBind } from '@terseware/utils';
 import { render, screen } from '@testing-library/angular';
-import { FocusProto } from './focus';
-import { ProtoFocus } from './proto-focus';
+import { FocusProto } from './focus.proto';
+
+@Directive({
+  selector: '[protoFocus]',
+  exportAs: 'protoFocus',
+})
+class ProtoFocus {
+  readonly #focus = resolve(FocusProto);
+  readonly disabled = input<boolean, BooleanInput>(this.#focus.disabled(), {
+    transform: booleanAttribute,
+    alias: 'protoFocusDisabled',
+  });
+
+  readonly checkChildren = input<boolean, BooleanInput>(this.#focus.checkChildren(), {
+    transform: booleanAttribute,
+    alias: 'protoFocusCheckChildren',
+  });
+  readonly focusChange = output<FocusOrigin>({ alias: 'protoFocusChange' });
+  readonly isFocused = this.#focus.isFocused;
+  readonly focusOrigin = this.#focus.focusOrigin;
+
+  constructor() {
+    signalBind(this.#focus.disabled, this.disabled);
+    signalBind(this.#focus.checkChildren, this.checkChildren);
+    onChange(this.focusOrigin, origin => this.focusChange.emit(origin));
+  }
+
+  focus(origin: FocusOrigin = 'program', focusOptions?: FocusOptions): void {
+    this.#focus.focus(origin, focusOptions);
+  }
+  blur(): void {
+    this.#focus.blur();
+  }
+}
 
 describe('ProtoFocus', () => {
   @Component({

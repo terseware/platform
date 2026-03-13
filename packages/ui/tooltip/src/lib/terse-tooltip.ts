@@ -4,46 +4,40 @@ import {
   computed,
   Directive,
   DOCUMENT,
+  ElementRef,
   inject,
   input,
   model,
+  viewChild,
 } from '@angular/core';
-import { ProtoTooltip, ProtoTooltipArrow, ProtoTooltipTrigger } from '@terseware/proto/tooltip';
+import { ProtoClasses, resolve } from '@terseware/proto';
+import { TooltipArrowProto, TooltipProto, TooltipTriggerProto } from '@terseware/proto/tooltip';
 import { cn } from '@terseware/ui/utils';
 import type { ClassValue } from 'clsx';
 
 @Directive({
   selector: '[terseTooltip]',
   exportAs: 'terseTooltip',
-  hostDirectives: [
-    {
-      directive: ProtoTooltipTrigger,
-      inputs: [
-        'tooltipOpen',
-        'tooltipShowDelay',
-        'tooltipHideDelay',
-        'tooltipSide',
-        'tooltipOffset',
-      ],
-    },
-  ],
 })
 export class TerseTooltip {
-  readonly #trigger = inject(ProtoTooltipTrigger);
   readonly content = model<string | null>(null, { alias: 'terseTooltip' });
-
   constructor() {
-    this.#trigger.content.set(_TerseTooltip);
+    resolve(TooltipTriggerProto).content.set(_TerseTooltip);
+  }
+}
+
+@Directive({ selector: '[terseTooltipArrow]' })
+class TerseTooltipArrow {
+  constructor() {
+    resolve(TooltipArrowProto);
   }
 }
 
 @Component({
   selector: 'terse-tooltip',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  hostDirectives: [ProtoTooltip],
-  imports: [ProtoTooltipArrow],
+  imports: [TerseTooltipArrow],
   host: {
-    '[class]': 'classValue()',
     'animate.enter': 'tooltip-enter',
     'animate.leave': 'tooltip-leave',
   },
@@ -99,20 +93,26 @@ export class TerseTooltip {
   `,
   template: `
     <span>{{ tooltip.content() }}</span>
-    <span class="bg-inherit" protoTooltipArrow></span>
+    <span class="bg-inherit" terseTooltipArrow></span>
   `,
 })
 class _TerseTooltip {
+  readonly #classes = resolve(ProtoClasses);
   readonly inverseTheme = inject(DOCUMENT).documentElement.classList.contains('dark')
     ? 'light'
     : 'dark';
+
   readonly tooltip = inject(TerseTooltip);
   readonly class = input<ClassValue>();
-  readonly classValue = computed(() =>
-    cn(
+  readonly classValue = computed(() => cn());
+  readonly arrow = viewChild.required('arrow', { read: ElementRef });
+
+  constructor() {
+    resolve(TooltipProto);
+    this.#classes.add(() => [
       this.inverseTheme,
       'bg-surface-light text-on-surface relative inline-block w-fit max-w-xs rounded-md px-2 py-1.5 text-xs text-balance',
       this.class(),
-    ),
-  );
+    ]);
+  }
 }

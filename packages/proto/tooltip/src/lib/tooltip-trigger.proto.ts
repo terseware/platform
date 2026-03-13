@@ -3,26 +3,23 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  Directive,
   effect,
   inject,
   Injector,
-  input,
   linkedSignal,
-  model,
   signal,
   TemplateRef,
   ViewContainerRef,
 } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
-import { ProtoHost } from '@terseware/proto';
-import { Anchor } from '@terseware/proto/anchor';
+import { on, ProtoHost, Resolvable, resolve } from '@terseware/proto';
+import { AnchorProto } from '@terseware/proto/anchor';
 import { FocusProto } from '@terseware/proto/focus';
 import { HoverProto } from '@terseware/proto/hover';
-import { injectElement, isNumber, isomorphicEffect, onChange } from '@terseware/utils';
+import { injectElement, isomorphicEffect, onChange } from '@terseware/utils';
 import { debounce, skip, timer } from 'rxjs';
-import type { ProtoTooltip } from './proto-tooltip';
-import type { ProtoTooltipArrow } from './proto-tooltip-arrow';
+import type { TooltipArrowProto } from './tooltip-arrow.proto';
+import type { TooltipProto } from './tooltip.proto';
 
 export type TooltipSide = 'top' | 'bottom' | 'left' | 'right';
 
@@ -33,32 +30,26 @@ const sideFlip: Record<TooltipSide, TooltipSide> = {
   right: 'left',
 };
 
-@Directive({
-  selector: '[protoTooltipTrigger]',
-  exportAs: 'protoTooltipTrigger',
-})
-export class ProtoTooltipTrigger {
+@Resolvable()
+export class TooltipTriggerProto {
   readonly #vcr = inject(ViewContainerRef);
   readonly #injector = inject(Injector);
   readonly #host = inject(ProtoHost);
-  readonly #hover = inject(HoverProto);
-  readonly #focus = inject(FocusProto);
+  readonly #hover = resolve(HoverProto);
+  readonly #focus = resolve(FocusProto);
 
   readonly element = injectElement();
-  readonly anchorName = inject(Anchor).name;
+  readonly anchorName = resolve(AnchorProto).name;
 
-  readonly content = model<Type<unknown> | TemplateRef<{ $implicit: ProtoTooltipTrigger }> | null>(
+  readonly content = signal<Type<unknown> | TemplateRef<{ $implicit: TooltipTriggerProto }> | null>(
     null,
-    { alias: 'protoTooltipTrigger' },
   );
 
-  readonly tooltipOpen = model<boolean>(false);
-  readonly tooltipShowDelay = input<number>(600);
-  readonly tooltipHideDelay = input<number>(0);
-  readonly tooltipSide = input<TooltipSide>('top');
-  readonly tooltipOffset = input<string, string | number>('0px', {
-    transform: v => (isNumber(v) ? `${v}px` : v || '0px'),
-  });
+  readonly tooltipOpen = signal<boolean>(false);
+  readonly tooltipShowDelay = signal<number>(600);
+  readonly tooltipHideDelay = signal<number>(0);
+  readonly tooltipSide = signal<TooltipSide>('top');
+  readonly tooltipOffset = signal<string>('0px');
 
   readonly gap = computed(() => {
     const offset = this.tooltipOffset();
@@ -67,16 +58,16 @@ export class ProtoTooltipTrigger {
     return `calc(${offset} + ${size} * 0.8)`;
   });
 
-  readonly #tooltip = signal<ProtoTooltip | null>(null);
+  readonly #tooltip = signal<TooltipProto | null>(null);
   readonly tooltip = this.#tooltip.asReadonly();
-  setTooltip(tooltip: ProtoTooltip): () => void {
+  setTooltip(tooltip: TooltipProto): () => void {
     this.#tooltip.set(tooltip);
     return () => this.#tooltip.set(null);
   }
 
-  readonly #arrow = signal<ProtoTooltipArrow | null>(null);
+  readonly #arrow = signal<TooltipArrowProto | null>(null);
   readonly arrow = this.#arrow.asReadonly();
-  setArrow(arrow: ProtoTooltipArrow): () => void {
+  setArrow(arrow: TooltipArrowProto): () => void {
     this.#arrow.set(arrow);
     return () => this.#arrow.set(null);
   }
@@ -147,7 +138,7 @@ export class ProtoTooltipTrigger {
       this.#set({ isInstant: true, tooltipOpen: false });
     });
 
-    this.#host.on('pointerdown', ({ event, next }) => {
+    on('pointerdown', ({ event, next }) => {
       // Reset hover sources to prevent tooltip from showing if the user immediately clicks away
       this.#hoverSources().forEach(source => source.set(false));
       this.#set({ isInstant: true, tooltipOpen: false });
@@ -212,8 +203,8 @@ export class ProtoTooltipTrigger {
   `,
 })
 class TooltipContainer {
-  readonly trigger = inject(ProtoTooltipTrigger);
-  readonly hover = inject(HoverProto);
+  readonly trigger = inject(TooltipTriggerProto);
+  readonly hover = resolve(HoverProto);
   readonly align = this.trigger.align;
 
   readonly triggerAnchorName = this.trigger.anchorName;

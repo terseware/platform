@@ -9,7 +9,8 @@ import {
 } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideMoon, lucideSun } from '@ng-icons/lucide';
-import { ButtonBehavior } from '@terseware/proto/button';
+import { resolve } from '@terseware/proto';
+import { ButtonProto } from '@terseware/proto/button';
 import type { TerseButtonVariants } from '@terseware/ui/button';
 import { terseButtonVariants } from '@terseware/ui/button';
 import { TerseTooltip } from '@terseware/ui/tooltip';
@@ -35,7 +36,7 @@ import { Theme } from './theme';
   `,
 })
 export class TerseThemeToggle {
-  readonly button = inject(ButtonBehavior);
+  readonly button = resolve(ButtonProto);
   readonly tooltip = inject(TerseTooltip);
   readonly theme = inject(Theme);
 

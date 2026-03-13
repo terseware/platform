@@ -3,19 +3,20 @@ import {
   booleanAttribute,
   ChangeDetectionStrategy,
   Component,
-  inject,
   input,
   numberAttribute,
 } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideLoaderCircle } from '@ng-icons/lucide';
-import { ButtonBehavior } from '@terseware/proto/button';
+import { ProtoClasses, resolve } from '@terseware/proto';
+import { ButtonProto } from '@terseware/proto/button';
 import { FocusProto } from '@terseware/proto/focus';
 import { HoverProto } from '@terseware/proto/hover';
-import { Press } from '@terseware/proto/press';
-import { classes, isUndefined, signalBind } from '@terseware/utils';
+import { PressProto } from '@terseware/proto/press';
+import { isUndefined, signalBind } from '@terseware/utils';
 import type { VariantProps } from 'class-variance-authority';
 import { cva } from 'class-variance-authority';
+import type { ClassValue } from 'clsx';
 
 export const terseButtonVariants = cva(
   'group/button data-focus-visible:ring-ring/70 inline-flex shrink-0 items-center justify-center rounded-md bg-clip-padding text-sm font-semibold whitespace-nowrap transition-colors duration-300 outline-none select-none data-disabled:pointer-events-none data-disabled:opacity-50 data-focus-visible:ring-3 data-press:duration-0 [&_ng-icon:not(--ng-icon__size)]:[--ng-icon__size:1rem]',
@@ -79,10 +80,13 @@ export type TerseButtonVariants = VariantProps<typeof terseButtonVariants>;
   `,
 })
 export class TerseButton {
-  readonly button = inject(ButtonBehavior);
-  readonly hover = inject(HoverProto);
-  readonly press = inject(Press);
-  readonly focus = inject(FocusProto);
+  readonly #classes = resolve(ProtoClasses);
+  readonly button = resolve(ButtonProto);
+  readonly hover = resolve(HoverProto);
+  readonly press = resolve(PressProto);
+  readonly focus = resolve(FocusProto);
+
+  readonly class = input<ClassValue>();
 
   readonly disabled = input<boolean, BooleanInput>(undefined, {
     transform: booleanAttribute,
@@ -106,14 +110,11 @@ export class TerseButton {
     signalBind(this.button.role, this.role);
     signalBind(this.button.type, this.type);
 
-    signalBind(this.hover.disabled, this.button.interact.disabled);
-    signalBind(this.press.disabled, this.button.interact.disabled);
-    signalBind(this.focus.disabled, this.button.interact.hardDisabled); // Allow focus when focusable when disabled is true
-
-    classes(() =>
+    this.#classes.add(() =>
       terseButtonVariants({
         variant: this.terseButton() || 'default',
         size: this.size(),
+        class: this.class(),
       }),
     );
   }

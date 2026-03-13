@@ -2,7 +2,7 @@ import { afterRenderEffect, inject, signal, untracked } from '@angular/core';
 import { ProtoHost, Resolvable } from '@terseware/proto';
 
 @Resolvable()
-export class Intersect {
+export class IntersectProto {
   readonly #host = inject(ProtoHost);
 
   readonly disabled = signal(false);

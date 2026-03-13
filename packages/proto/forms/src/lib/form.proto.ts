@@ -1,11 +1,11 @@
 import { computed, inject, signal } from '@angular/core';
 import { FORM_FIELD, FormRoot } from '@angular/forms/signals';
-import { ProtoHost, Resolvable } from '@terseware/proto';
+import { ProtoHost, Resolvable, resolve } from '@terseware/proto';
 import { HoverProto } from '@terseware/proto/hover';
 import { injectElement, isNode } from '@terseware/utils';
 import { installFieldDataAttributes } from './forms-di';
 
-@Resolvable({ inherit: true, explicit: true })
+@Resolvable()
 export class FormProto<T> {
   readonly #host = inject(ProtoHost);
   readonly formRoot = inject(FormRoot<T>);
@@ -17,7 +17,7 @@ export class FormProto<T> {
   readonly triedSubmitting = this.#triedSubmitting.asReadonly();
 
   constructor() {
-    inject(HoverProto);
+    resolve(HoverProto);
     // Don't install data attributes if the root element is also a form field
     // since form fields are already installed with data attributes
     if (!inject(FORM_FIELD, { optional: true, host: true })) {
